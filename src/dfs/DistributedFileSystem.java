@@ -3,6 +3,7 @@ package dfs;
 import util.Host;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Set;
 
 /**
@@ -14,21 +15,20 @@ import java.util.Set;
  */
 public class DistributedFileSystem {
 
-    private final int REPLICATION_FACTOR;
-    private final int SPLIT_SIZE; //number of lines in each split
+    public static final int REPLICATION_FACTOR = 2;
+    public static final int SPLIT_SIZE = 10; //number of lines in each split
+    public static final String LOCAL_CHUNK_PREFIX = "./tmp/distributed-chunks/";
     private Set<Host> nodes;
 
 
     public DistributedFileSystem(File configFile) {
-        REPLICATION_FACTOR = 2;
-        SPLIT_SIZE = 10;
         Host node1 = new Host("unix1.andrew.cmu.edu", 6666);
         Host node2 = new Host("unix2.andrew.cmu.edu", 6666);
         nodes.add(node1);
         nodes.add(node2);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         File testFile = new File("./10lines.txt");
         DistributedFileSystem dfs = new DistributedFileSystem(new File("./dfsConfigFile"));
         DistributedFile df = new DistributedFile(testFile, dfs.nodes, 5);

@@ -1,12 +1,12 @@
 package dfs;
 
+import messages.FileMessage;
+import messages.SocketMessenger;
 import util.Host;
+import util.KCyclicIterator;
 
 import java.io.*;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -23,19 +23,21 @@ public class DistributedFile {
     //map from chunk to set of remote files on hosts where chunk resides
     private Map<Integer, Set<File>> chunksToHosts;
 
-    public DistributedFile(File f, Set<Host> nodeSet, int splitSize) {
+    private Map<Host, SocketMessenger> messengers;
+
+    public DistributedFile(File f, Set<Host> nodeSet, int splitSize) throws IOException {
         FILE_NAME = f.getName();
         SPLIT_SIZE = splitSize;
+        messengers = new HashMap<Host,SocketMessenger>();
         chunkAndSend(f, nodeSet);
     }
 
-    private void chunkAndSend(File file, Set<Host> nodes) {
-        Iterator<Host> nodesIterator = nodes.iterator();
-        if (!nodesIterator.hasNext()) {
-            throw new NoSuchElementException("Cant pass empty set of nodes to distribute to");
-        }
+    // reuse sockets instead of reopening each time
+    private void chunkAndSend(File file, Set<Host> nodes) throws IOException {
 
-        Host currentNode = nodesIterator.next();
+        KCyclicIterator<Host> nodesIterator = new KCyclicIterator<Host>(nodes,
+                DistributedFileSystem.REPLICATION_FACTOR);
+
         int chunkNo = 1;
         int lineCount = 0;
         File fileChunk = null;
@@ -51,11 +53,22 @@ public class DistributedFile {
                     if (chunkWriter != null)
                         chunkWriter.close();
 
+                    //send chunk to node
+                    if (fileChunk != null) {
+                        List<Host> hosts = nodesIterator.next();
+                        for (Host host : hosts) {
+                            if (!messengers.containsKey(host))
+                                messengers.put(host, new SocketMessenger(host));
+
+                            messengers.get(host).sendMessage(new FileMessage(fileChunk));
+                        }
+                    }
+
                     //increment chunk no
                     chunkNo++;
 
                     //open new chunk handles/writers
-                    fileChunk = new File(getChunkPath(currentNode, file, chunkNo));
+                    fileChunk = new File(getLocalChunkPath(file, chunkNo));
                     chunkWriter = new BufferedWriter(new FileWriter(fileChunk));
 
                     //create new chunk file/dir if doesnt exist
@@ -68,13 +81,6 @@ public class DistributedFile {
 
                     //reset linecount
                     lineCount = 1;
-
-                    //get next node
-                    if (!nodesIterator.hasNext())
-                        nodesIterator = nodes.iterator();
-                    currentNode = nodesIterator.next();
-
-
                 }
 
                 chunkWriter.write(line);
@@ -89,8 +95,10 @@ public class DistributedFile {
         }
     }
 
-    private String getChunkPath(Host host, File file, int chunkNo) {
-        return host.REMOTE_CHUNKS_DIR_PATH + file.getName() + "-" + chunkNo;
+    private String getLocalChunkPath(File file, int chunkNo) {
+        return DistributedFileSystem.LOCAL_CHUNK_PREFIX + file.getName() + "-" + chunkNo;
     }
+
+
 
 }
