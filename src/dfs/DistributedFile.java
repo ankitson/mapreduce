@@ -42,19 +42,16 @@ public class DistributedFile {
         int lineCount = 0;
         File fileChunk = null;
         BufferedWriter chunkWriter = null;
-        boolean firstTime = true;
+        boolean chunkSent = true;
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
 
             while ((line = br.readLine()) != null) {
-                lineCount++;
-                if (firstTime || lineCount % SPLIT_SIZE == 0) {
-
-                    firstTime = false;
-
+                if (lineCount % SPLIT_SIZE == 0) {
                     System.out.println("sending chunk");
+
                     //close old chunk
                     if (chunkWriter != null)
                         chunkWriter.close();
@@ -71,6 +68,7 @@ public class DistributedFile {
                             System.out.println("sending chunk " + chunkNo + "to host: " + host);
                             messengers.get(host).sendMessage(new FileMessage(fileChunk));
                         }
+                        chunkSent = true;
                     }
 
                     //increment chunk no
@@ -90,11 +88,24 @@ public class DistributedFile {
                     }
                     chunkWriter = new BufferedWriter(new FileWriter(fileChunk));
                 }
-
-                chunkWriter.write(line);
+                lineCount++;
+                chunkWriter.write(line+"\n");
+                chunkSent = false;
                 System.out.println("at line: " + lineCount);
             }
             br.close();
+            if (chunkSent == false) {
+                System.out.println("file chunk not null");
+                List<Host> hosts = nodesIterator.next();
+                System.out.println("hosts to send chunk to: " + hosts);
+                for (Host host : hosts) {
+                    if (!messengers.containsKey(host))
+                        messengers.put(host, new SocketMessenger(host));
+
+                    System.out.println("sending chunk " + chunkNo + "to host: " + host);
+                    messengers.get(host).sendMessage(new FileMessage(fileChunk));
+                }
+            }
         }
         catch (FileNotFoundException e) {
             System.err.println("File to chunk not found: " + e);
