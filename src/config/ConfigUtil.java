@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A configuration is a set of <key,value> strings, which can be represented
+ * A configuration is a set of <key,value> strings, which is represented
  * in memory as a map, and on disk as a file with format:
  * KEY1=VALUE1
  * KEY2=VALUE2
