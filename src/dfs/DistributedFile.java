@@ -1,6 +1,6 @@
 package dfs;
 
-import messages.FileMessage;
+import messages.FileNameMessage;
 import messages.SocketMessenger;
 import util.Host;
 import util.KCyclicIterator;
@@ -66,7 +66,8 @@ public class DistributedFile {
                                 messengers.put(host, new SocketMessenger(host));
 
                             System.out.println("sending chunk " + chunkNo + "to host: " + host);
-                            messengers.get(host).sendMessage(new FileMessage(fileChunk));
+                            messengers.get(host).sendMessage(new FileNameMessage(fileChunk.getName()));
+                            messengers.get(host).sendFile(fileChunk);
                         }
                         chunkSent = true;
                     }
@@ -103,7 +104,8 @@ public class DistributedFile {
                         messengers.put(host, new SocketMessenger(host));
 
                     System.out.println("sending chunk " + chunkNo + "to host: " + host);
-                    messengers.get(host).sendMessage(new FileMessage(fileChunk));
+                    messengers.get(host).sendMessage(new FileNameMessage(fileChunk.getName()));
+                    messengers.get(host).sendFile(fileChunk);
                 }
             }
         }

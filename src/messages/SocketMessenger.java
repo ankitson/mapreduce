@@ -2,9 +2,7 @@ package messages;
 
 import util.Host;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 
 /**
@@ -17,27 +15,55 @@ import java.net.Socket;
 
 public class SocketMessenger {
 
-    private Host host;
+    private Host host = null;
     private Socket socket;
     public ObjectOutputStream objectOutputStream;
     private ObjectInputStream objectInputStream = null;
 
+    private static final int BUFFER_SIZE = 8192;
+
     public SocketMessenger(Host host) throws IOException {
         this.host = host;
         socket = host.getSocket();
-        System.out.println("got socket");
         objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-        System.out.println("got objectoutputstream");
+    }
+
+    public SocketMessenger(Socket socket) throws IOException {
+        this.socket = socket;
+        objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
     }
 
     public void sendMessage(Message message) throws IOException {
         objectOutputStream.writeObject(message);
     }
 
+    public void sendFile(File f) throws IOException {
+        OutputStream os = socket.getOutputStream();
+        FileInputStream fis = new FileInputStream(f);
+
+        int count;
+        byte[] buffer = new byte[BUFFER_SIZE];
+        while ((count = fis.read(buffer)) > 0) {
+            os.write(buffer, 0, count);
+        }
+        fis.close();
+    }
+
     public Message receiveMessage() throws IOException, ClassNotFoundException {
         if (objectInputStream == null)
             objectInputStream = new ObjectInputStream(socket.getInputStream());
         return (Message) objectInputStream.readObject();
+    }
 
+    public void receiveFile(File f) throws IOException {
+        InputStream is = socket.getInputStream();
+        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f));
+
+        int count;
+        byte[] buffer = new byte[BUFFER_SIZE];
+        while ((count = is.read(buffer)) > 0) {
+            bos.write(buffer, 0, count);
+        }
+        bos.close();
     }
 }
