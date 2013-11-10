@@ -29,6 +29,7 @@ public class DistributedFileSystemNode implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         }
+        isListening = true;
     }
 
     public void run() {
