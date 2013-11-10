@@ -62,4 +62,11 @@ public class DistributedFileSystemNode implements Runnable{
 
             }
     }
+
+    public static void main(String[] args) {
+        DistributedFileSystemNode dfsn = new DistributedFileSystemNode(6666);
+        Thread thread = new Thread(dfsn);
+        thread.run();
+    }
+
 }
