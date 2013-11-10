@@ -38,29 +38,37 @@ public class DistributedFile {
         KCyclicIterator<Host> nodesIterator = new KCyclicIterator<Host>(nodes,
                 DistributedFileSystem.REPLICATION_FACTOR);
 
-        int chunkNo = 1;
+        int chunkNo = 0;
         int lineCount = 0;
         File fileChunk = null;
         BufferedWriter chunkWriter = null;
+        boolean firstTime = true;
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
 
             while ((line = br.readLine()) != null) {
-                if (lineCount == SPLIT_SIZE || lineCount == 0) {
+                lineCount++;
+                if (firstTime || lineCount % SPLIT_SIZE == 0) {
 
+                    firstTime = false;
+
+                    System.out.println("sending chunk");
                     //close old chunk
                     if (chunkWriter != null)
                         chunkWriter.close();
 
                     //send chunk to node
                     if (fileChunk != null) {
+                        System.out.println("file chunk not null");
                         List<Host> hosts = nodesIterator.next();
+                        System.out.println("hosts to send chunk to: " + hosts);
                         for (Host host : hosts) {
                             if (!messengers.containsKey(host))
                                 messengers.put(host, new SocketMessenger(host));
 
+                            System.out.println("sending chunk " + chunkNo + "to host: " + host);
                             messengers.get(host).sendMessage(new FileMessage(fileChunk));
                         }
                     }
@@ -70,22 +78,21 @@ public class DistributedFile {
 
                     //open new chunk handles/writers
                     fileChunk = new File(getLocalChunkPath(file, chunkNo));
-                    chunkWriter = new BufferedWriter(new FileWriter(fileChunk));
 
                     //create new chunk file/dir if doesnt exist
                     if (!fileChunk.exists()) {
                         File parentDir = fileChunk.getParentFile();
-                        if (!parentDir.exists())
+
+                        if (!parentDir.exists()) {
                             parentDir.mkdirs();
+                        }
                         fileChunk.createNewFile();
                     }
-
-                    //reset linecount
-                    lineCount = 1;
+                    chunkWriter = new BufferedWriter(new FileWriter(fileChunk));
                 }
 
                 chunkWriter.write(line);
-                lineCount++;
+                System.out.println("at line: " + lineCount);
             }
             br.close();
         }
@@ -99,6 +106,21 @@ public class DistributedFile {
 
     private String getLocalChunkPath(File file, int chunkNo) {
         return DistributedFileSystem.LOCAL_CHUNK_PREFIX + file.getName() + "-" + chunkNo;
+    }
+
+    public static void main(String[] args) throws IOException {
+        /*File fileChunk = new File("/Users/ankit/a/b/c/bla-new-file.txt");
+        if (!fileChunk.exists()) {
+            File parentDir = fileChunk.getParentFile();
+            if (!parentDir.exists())
+                parentDir.mkdirs();
+            fileChunk.createNewFile();
+        }*/
+
+        File file = new File("./blatest.txt");
+        BufferedReader br = new BufferedReader(new FileReader(file));
+
+
     }
 
 

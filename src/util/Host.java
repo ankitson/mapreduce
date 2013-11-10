@@ -35,4 +35,8 @@ public class Host {
         socket = new Socket(HOSTNAME, PORT);
         return socket;
     }
+
+    public String toString() {
+        return HOSTNAME + ":" + PORT;
+    }
 }

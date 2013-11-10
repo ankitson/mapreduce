@@ -8,9 +8,7 @@ package util;
  * To change this template use File | Settings | File Templates.
  */
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Takes any iterator, and transforms it to a k-iterator.
@@ -31,6 +29,7 @@ public class KCyclicIterator<E> implements Iterator<List<E>> {
 
     public KCyclicIterator(Iterable<E> iterable, int k) {
         this.iterable = iterable;
+        System.out.println("iterable: " + iterable);
         this.it = iterable.iterator();
         this.k = k;
 
@@ -56,5 +55,17 @@ public class KCyclicIterator<E> implements Iterator<List<E>> {
 
     public void remove() {
         throw new UnsupportedOperationException("Remove is not supported");
+    }
+
+    public static void main(String[] args) {
+        Set<Integer> test = new HashSet<Integer>();
+        test.add(1);
+        test.add(2);
+        test.add(3);
+
+        KCyclicIterator<Integer> kIterator = new KCyclicIterator<Integer>(test, 2);
+        for (int i=0;i<5;i++) {
+            System.out.println(kIterator.next());
+        }
     }
 }

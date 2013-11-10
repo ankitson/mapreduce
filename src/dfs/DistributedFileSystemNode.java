@@ -51,16 +51,21 @@ public class DistributedFileSystemNode implements Runnable{
             File file = fileMessage.getFile();
             String fileName = file.getName();
             File tagFile = new File(dir,fileName);
-            if(!tagFile.exists()){
+
+            if (!tagFile.exists()) {
+                File parentDir = tagFile.getParentFile();
+
+                if (!parentDir.exists()) {
+                    parentDir.mkdirs();
+                }
                 try {
                     tagFile.createNewFile();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
             }
 
-            }
+        }
     }
 
     public static void main(String[] args) {

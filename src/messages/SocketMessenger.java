@@ -20,11 +20,14 @@ public class SocketMessenger {
     private Host host;
     private Socket socket;
     public ObjectOutputStream objectOutputStream;
-    private ObjectInputStream objectInputStream;
+    private ObjectInputStream objectInputStream = null;
 
     public SocketMessenger(Host host) throws IOException {
         this.host = host;
         socket = host.getSocket();
+        System.out.println("got socket");
+        objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+        System.out.println("got objectoutputstream");
     }
 
     public void sendMessage(Message message) throws IOException {
@@ -32,6 +35,8 @@ public class SocketMessenger {
     }
 
     public Message receiveMessage() throws IOException, ClassNotFoundException {
+        if (objectInputStream == null)
+            objectInputStream = new ObjectInputStream(socket.getInputStream());
         return (Message) objectInputStream.readObject();
 
     }
