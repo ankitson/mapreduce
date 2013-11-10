@@ -43,7 +43,8 @@ public class DistributedFile {
         File fileChunk = null;
         BufferedWriter chunkWriter = null;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
 
             while ((line = br.readLine()) != null) {
@@ -86,6 +87,7 @@ public class DistributedFile {
                 chunkWriter.write(line);
                 lineCount++;
             }
+            br.close();
         }
         catch (FileNotFoundException e) {
             System.err.println("File to chunk not found: " + e);

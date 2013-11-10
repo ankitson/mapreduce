@@ -26,7 +26,8 @@ public class ConfigUtil {
      */
     public static Map<String,List<String>> readConfig(File configFile) throws FileNotFoundException {
         Map<String,List<String>> configObject = new HashMap<String,List<String>>();
-        try (BufferedReader br = new BufferedReader(new FileReader(configFile))) {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(configFile));
             String line;
             while ((line = br.readLine()) != null) {
                 String[] components = line.split("=");
@@ -40,6 +41,7 @@ public class ConfigUtil {
                 }
                 configObject.put(components[0],values);
             }
+            br.close();
         }
         catch (IOException e) {
             return null;
@@ -55,10 +57,12 @@ public class ConfigUtil {
                 System.err.println("Error creating out file: " + e);
             }
         }
-        try (BufferedWriter output = new BufferedWriter(new FileWriter(outFile))) {
+        try {
+            BufferedWriter output = new BufferedWriter(new FileWriter(outFile));
             for (Map.Entry<String, List<String>> entry : configObject.entrySet()) {
                 output.write(entry.getKey() + "=" + entry.getValue() + "\n");
             }
+            output.close();
         }
         catch (IOException e) {
             System.err.println("Error writing config file: " + e);
