@@ -5,8 +5,10 @@ import messages.FileMessage;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 /**
  * Created with IntelliJ IDEA.
@@ -21,7 +23,7 @@ public class DistributedFileSystemNode implements Runnable{
     private boolean isListening;
 
     // temporary code
-    private String directoryPath = "./tmp/distributedChunks";
+    private String directoryPath;
 
     public DistributedFileSystemNode(int port) {
         try {
@@ -30,6 +32,12 @@ public class DistributedFileSystemNode implements Runnable{
             e.printStackTrace();
         }
         isListening = true;
+
+        try {
+            directoryPath = "./tmp/distributedChunks-" + InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
     }
 
     public void run() {
