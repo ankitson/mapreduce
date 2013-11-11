@@ -1,7 +1,5 @@
 package messages;
 
-import util.Host;
-
 import java.io.*;
 import java.net.Socket;
 
@@ -15,18 +13,11 @@ import java.net.Socket;
 
 public class SocketMessenger {
 
-    private Host host = null;
     private Socket socket;
     public ObjectOutputStream objectOutputStream;
     private ObjectInputStream objectInputStream = null;
 
     private static final int BUFFER_SIZE = 8192;
-
-    public SocketMessenger(Host host) throws IOException {
-        this.host = host;
-        socket = host.getSocket();
-        objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-    }
 
     public SocketMessenger(Socket socket) throws IOException {
         this.socket = socket;
@@ -50,20 +41,29 @@ public class SocketMessenger {
     }
 
     public Message receiveMessage() throws IOException, ClassNotFoundException {
-        if (objectInputStream == null)
+        if (objectInputStream == null) {
+            System.out.println("creating new obj input stream");
             objectInputStream = new ObjectInputStream(socket.getInputStream());
+        }
+        System.out.println("receiving message");
         return (Message) objectInputStream.readObject();
     }
 
-    public void receiveFile(File f) throws IOException {
+    public boolean receiveFile(File f, int length) throws IOException {
         InputStream is = socket.getInputStream();
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f));
 
-        int count;
-        byte[] buffer = new byte[BUFFER_SIZE];
-        while ((count = is.read(buffer)) > 0) {
-            bos.write(buffer, 0, count);
-        }
+        int bytesRead;
+        byte[] buffer = new byte[length];
+        bytesRead = is.read(buffer,0,length);
+        bos.write(buffer,0,length);
         bos.close();
+        return (bytesRead == length);
+    }
+
+    public void close() throws IOException {
+        objectOutputStream.close();
+        objectInputStream.close();
+        return;
     }
 }

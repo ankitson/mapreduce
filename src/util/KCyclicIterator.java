@@ -11,16 +11,16 @@ package util;
 import java.util.*;
 
 /**
- * Takes any iterator, and transforms it to a k-iterator.
+ * Returns a size k cyclic iterator
  * Each iteration returns a list of the next k items.
  *
  * A standard iterator can be considered a 1-iterator.
  *
- * Further, it is cyclic - it auto wraps around. So there is no need
- * to use the hasNext() method
+ * Further, it is cyclic - it auto wraps around. This also means that
+ * hasNext() will always be true.
  *
  * If k is larger than the size of the underlying collection, elements will
- * be repeated
+ * be repeated within the returned list.
  */
 public class KCyclicIterator<E> implements Iterator<List<E>> {
     Iterable<E> iterable;

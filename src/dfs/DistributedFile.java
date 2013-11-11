@@ -1,12 +1,15 @@
 package dfs;
 
-import messages.FileNameMessage;
+import messages.FileInfoMessage;
 import messages.SocketMessenger;
+import util.FileUtils;
 import util.Host;
 import util.KCyclicIterator;
 
 import java.io.*;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA.
@@ -25,14 +28,13 @@ public class DistributedFile {
 
     private Map<Host, SocketMessenger> messengers;
 
-    public DistributedFile(File f, Set<Host> nodeSet, int splitSize) throws IOException {
+    public DistributedFile(File f, Set<Host> nodeSet, int splitSize, Map<Host,SocketMessenger> messengers) throws IOException {
         FILE_NAME = f.getName();
         SPLIT_SIZE = splitSize;
-        messengers = new HashMap<Host,SocketMessenger>();
+        this.messengers = messengers;
         chunkAndSend(f, nodeSet);
     }
 
-    // reuse sockets instead of reopening each time
     private void chunkAndSend(File file, Set<Host> nodes) throws IOException {
 
         KCyclicIterator<Host> nodesIterator = new KCyclicIterator<Host>(nodes,
@@ -62,12 +64,16 @@ public class DistributedFile {
                         List<Host> hosts = nodesIterator.next();
                         System.out.println("hosts to send chunk to: " + hosts);
                         for (Host host : hosts) {
-                            if (!messengers.containsKey(host))
-                                messengers.put(host, new SocketMessenger(host));
+                            if (!messengers.containsKey(host)) {
+                                System.err.println("No connection to host " + host + ", skipping.");
+                                continue;
+                            }
 
                             System.out.println("sending chunk " + chunkNo + "to host: " + host);
-                            messengers.get(host).sendMessage(new FileNameMessage(fileChunk.getName()));
+                            messengers.get(host).sendMessage(new FileInfoMessage(fileChunk.getName(), fileChunk.length()));
+                            System.out.println("sent file name message: " + fileChunk.getName() + "," + fileChunk.length());
                             messengers.get(host).sendFile(fileChunk);
+                            System.out.println("sent file: " + FileUtils.print(fileChunk));
                         }
                         chunkSent = true;
                     }
@@ -96,16 +102,21 @@ public class DistributedFile {
             }
             br.close();
             if (chunkSent == false) {
+                chunkWriter.close();
                 System.out.println("file chunk not null");
                 List<Host> hosts = nodesIterator.next();
                 System.out.println("hosts to send chunk to: " + hosts);
                 for (Host host : hosts) {
-                    if (!messengers.containsKey(host))
-                        messengers.put(host, new SocketMessenger(host));
+                    if (!messengers.containsKey(host)) {
+                        System.err.println("No connection to host " + host + ", skipping.");
+                        continue;
+                    }
 
                     System.out.println("sending chunk " + chunkNo + "to host: " + host);
-                    messengers.get(host).sendMessage(new FileNameMessage(fileChunk.getName()));
+                    messengers.get(host).sendMessage(new FileInfoMessage(fileChunk.getName(), fileChunk.length()));
+                    System.out.println("sent file name message: " + fileChunk.getName() + "," + fileChunk.length());
                     messengers.get(host).sendFile(fileChunk);
+                    System.out.println("sent file: " + FileUtils.print(fileChunk));
                 }
             }
         }
