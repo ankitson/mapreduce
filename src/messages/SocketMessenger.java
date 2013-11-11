@@ -63,7 +63,10 @@ public class SocketMessenger {
 
     public void close() throws IOException {
         objectOutputStream.close();
-        objectInputStream.close();
+
+        if (objectInputStream != null)
+            objectInputStream.close();
+
         return;
     }
 }
