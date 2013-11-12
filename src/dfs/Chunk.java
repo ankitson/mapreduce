@@ -8,15 +8,17 @@ package dfs;
  * To change this template use File | Settings | File Templates.
  */
 public class Chunk {
+    public static final String CHUNK_PATH = "./tmp/distributed-chunks/"; //read from config
 
-    private String fileName;
+    String fileName;
+    int chunkNo;
 
-    public Chunk(String fileName) {
+    public Chunk(String fileName, int chunkNo) {
         this.fileName = fileName;
+        this.chunkNo = chunkNo;
     }
 
-    public String getFileName() {
-        return fileName;
+    public String getLocalChunkPath() {
+        return CHUNK_PATH + fileName + "-" + chunkNo;
     }
-
 }

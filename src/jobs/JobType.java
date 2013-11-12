@@ -8,5 +8,5 @@ package jobs;
  * To change this template use File | Settings | File Templates.
  */
 public enum JobType {
-    MAP, REDUCE, COMBINE, DUMMY
+    MAP, REDUCE, DUMMY
 }

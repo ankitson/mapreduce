@@ -25,6 +25,7 @@ public class JobScheduler {
         jobQueue = new PriorityBlockingQueue<Job>();
     }
 
+    //if a job has already been tried, maybe try to schedule it on a different node?
     public boolean addJob(Job job) {
         //set the host for this job - decide which slave to run this job on
         //job.host = x
@@ -35,9 +36,9 @@ public class JobScheduler {
         return jobQueue.poll();
     }
 
-    //return null if there is no next job
-    public Job viewNextJob() {
-        return null;
+    //change addJob to addJobs(list), ready after whole batch added
+    public boolean ready() {
+        return true;
     }
 
     public void slaveDied(Host slave) {

@@ -7,6 +7,7 @@ import util.Host;
 import util.KCyclicIterator;
 
 import java.io.*;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,8 +24,7 @@ public class DistributedFile {
     private final String FILE_NAME;
     private final int SPLIT_SIZE; //read from config
 
-    //map from chunk to set of remote files on hosts where chunk resides
-    private Map<Integer, Set<File>> chunksToHosts;
+    private Map<Chunk,Set<Host>> chunksToHosts;
 
     private Map<Host, SocketMessenger> messengers;
 
@@ -38,13 +38,15 @@ public class DistributedFile {
     private void chunkAndSend(File file, Set<Host> nodes) throws IOException {
 
         KCyclicIterator<Host> nodesIterator = new KCyclicIterator<Host>(nodes,
-                DistributedFileSystem.REPLICATION_FACTOR);
+                DistributedFileSystemConstants.REPLICATION_FACTOR);
 
         int chunkNo = 0;
         int lineCount = 0;
         File fileChunk = null;
         BufferedWriter chunkWriter = null;
         boolean chunkSent = true;
+        Chunk chunk = null;
+        Set<Host> currentChunkHosts;
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
@@ -53,6 +55,9 @@ public class DistributedFile {
             while ((line = br.readLine()) != null) {
                 if (lineCount % SPLIT_SIZE == 0) {
                     System.out.println("sending chunk");
+
+
+                    chunk = new Chunk(file.getName(), chunkNo);
 
                     //close old chunk
                     if (chunkWriter != null)
@@ -63,11 +68,13 @@ public class DistributedFile {
                         System.out.println("file chunk not null");
                         List<Host> hosts = nodesIterator.next();
                         System.out.println("hosts to send chunk to: " + hosts);
+                        currentChunkHosts = new HashSet<Host>();
                         for (Host host : hosts) {
                             if (!messengers.containsKey(host)) {
                                 System.err.println("No connection to host " + host + ", skipping.");
                                 continue;
                             }
+                            currentChunkHosts.add(host);
 
                             System.out.println("sending chunk " + chunkNo + "to host: " + host);
                             messengers.get(host).sendMessage(new FileInfoMessage(fileChunk.getName(), fileChunk.length()));
@@ -75,6 +82,7 @@ public class DistributedFile {
                             messengers.get(host).sendFile(fileChunk);
                             System.out.println("sent file: " + FileUtils.print(fileChunk));
                         }
+                        chunksToHosts.put(chunk, currentChunkHosts);
                         chunkSent = true;
                     }
 
@@ -82,7 +90,7 @@ public class DistributedFile {
                     chunkNo++;
 
                     //open new chunk handles/writers
-                    fileChunk = new File(getLocalChunkPath(file, chunkNo));
+                    fileChunk = new File(chunk.getLocalChunkPath());
 
                     //create new chunk file/dir if doesnt exist
                     if (!fileChunk.exists()) {
@@ -126,10 +134,6 @@ public class DistributedFile {
         catch (IOException e) {
             System.err.println("IOException chunking/sending file: " + e);
         }
-    }
-
-    private String getLocalChunkPath(File file, int chunkNo) {
-        return DistributedFileSystem.LOCAL_CHUNK_PREFIX + file.getName() + "-" + chunkNo;
     }
 
     public static void main(String[] args) throws IOException {

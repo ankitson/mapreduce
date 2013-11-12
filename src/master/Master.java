@@ -1,13 +1,12 @@
 package master;
 
-import config.Configuration;
 import dfs.DistributedFile;
 import messages.SocketMessenger;
 import util.Host;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,11 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Master {
 
-    private final Configuration MAPREDUCE_CONFIG = new Configuration(new File('./config/mapreduce_config.txt'));
-    private final Configuration DFS_CONFIG = new Configuration(new File('./config/dfs_config.txt'));
+    //private final Configuration MAPREDUCE_CONFIG = new Configuration(new File('./config/mapreduce_config.txt'));
+    //private final Configuration DFS_CONFIG = new Configuration(new File('./config/dfs_config.txt'));
 
     private Set<Host> slaves; //parse from config file
-    private Set<File> files; //parse from config file
+    public Set<File> files; //parse from config file //MAKE PRIVATE LATER
     private Map<File, DistributedFile> filesToDistributedFiles;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
 
@@ -42,10 +41,9 @@ public class Master {
 
         new Thread(new JobDispatcherThread(jobQueue, messengers)).start(); //fill in args to thread
         for (SocketMessenger slaveMessenger : messengers.values()) {
-            new Thread(new SlaveListenerThread(slaveMessenger)).start();
+            new Thread(new SlaveListenerThread(slaveMessenger, jobQueue, messengers)).start();
             //fill in other args to thread ?
         }
-        listenInput();
     }
 
     private void initializeDFS(Set<File> files) throws IOException {
@@ -74,6 +72,16 @@ public class Master {
         //jobID++
         //jobQueue.add(job)
 
+
+    }
+
+    public static void main(String[] args) throws IOException {
+        Master master = new Master();
+        Set<File> files = new HashSet<File>();
+        files.add(new File("./testfile1.txt"));
+        files.add(new File("./testfile2.txt"));
+        master.files = files;
+        master.listenInput();
 
     }
 }

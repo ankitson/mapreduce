@@ -1,15 +1,5 @@
 package dfs;
 
-import messages.SocketMessenger;
-import util.Host;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 /**
  * Created with IntelliJ IDEA.
  * User: ankit
@@ -17,12 +7,12 @@ import java.util.Set;
  * Time: 11:52 PM
  * To change this template use File | Settings | File Templates.
  */
-public class DistributedFileSystem {
+public final class DistributedFileSystemConstants {
 
     public static final int REPLICATION_FACTOR = 2;
     public static final int SPLIT_SIZE = 10; //number of lines in each split
-    public static final String LOCAL_CHUNK_PREFIX = "./tmp/distributed-chunks/";
-    public Set<Host> nodes;
+
+    /*public Set<Host> nodes;
     private Map<Host, SocketMessenger> messengers;
 
 
@@ -58,7 +48,7 @@ public class DistributedFileSystem {
         for (SocketMessenger messenger : messengers.values()) {
             messenger.close();
         }
-    }
+    }*/
 
 
 }

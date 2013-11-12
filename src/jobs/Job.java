@@ -28,7 +28,7 @@ public class Job<V> implements Serializable {
     public boolean success; //whether job successful or not
     public JobType jobType;
 
-    //map jobs.
+    //map jobs
     public Chunk chunk;
     public MapperInterface<V> mapperInterface;
 

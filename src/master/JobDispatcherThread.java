@@ -25,6 +25,10 @@ import java.util.concurrent.ConcurrentHashMap;
 //when a slave dies, the scheduler should have a method called slaveDead()
 //it will reschedule all jobs and make sure that slave doesnt get any more jobs
 //it will also have a slaveAlive() again.
+
+//we are not taking to account faulty slaves - a slave that is not dead, but that
+//cant run jobs. SOLN: if too many jobs fail on slave, try restarting. if restart doesnt help either,
+//maybe permanently delete the slave
 public class JobDispatcherThread implements Runnable {
 
     private static int jobID = 0;
@@ -38,7 +42,7 @@ public class JobDispatcherThread implements Runnable {
     //should this busy-loop or have a timeout?
     public void run() {
         while (true) {
-            if (jobQueue.viewNextJob() == null)
+            if (!jobQueue.ready())
                 continue;
 
             Job dispatchJob = jobQueue.dequeueNextJob();

@@ -12,8 +12,10 @@ import jobs.Job;
 import messages.JobMessage;
 import messages.Message;
 import messages.SocketMessenger;
+import util.Host;
 
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Listens for messages from a slave and services their requests
@@ -22,11 +24,14 @@ public class SlaveListenerThread implements Runnable {
 
     private JobScheduler jobScheduler;
     private SocketMessenger slaveMessenger;
+    private ConcurrentHashMap<Host, SocketMessenger> messengers;
     private final int MAX_JOB_TRIES = 3; //read from config
 
-    public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler) {
+    public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler,
+                               ConcurrentHashMap<Host, SocketMessenger> messengers) {
         this.slaveMessenger = slaveMessenger;
         this.jobScheduler = jobScheduler;
+        this.messengers = messengers;
     }
 
     public void run() {
@@ -50,11 +55,9 @@ public class SlaveListenerThread implements Runnable {
                             jobScheduler.addJob(job);
                         }
                     }
-                } else {
-                    System.err.println("Unexpected message received from slave: " + message);
                 }
             } catch (IOException e) {
-                System.err.println("Error receiving message from slave: " + e);
+                System.err.println("Error receiving message from slave (possibly timeout): " + e);
             } catch (ClassNotFoundException e) {
                 System.err.println("Illegal message received from slave: " + e);
             }

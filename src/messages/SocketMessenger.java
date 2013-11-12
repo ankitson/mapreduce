@@ -18,9 +18,11 @@ public class SocketMessenger {
     private ObjectInputStream objectInputStream = null;
 
     private static final int BUFFER_SIZE = 8192;
+    private static final int SOCKET_TIMEOUT = 3000;
 
     public SocketMessenger(Socket socket) throws IOException {
         this.socket = socket;
+        socket.setSoTimeout(SOCKET_TIMEOUT);
         objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
     }
 
