@@ -24,11 +24,11 @@ public class SocketMessenger {
         objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
     }
 
-    public void sendMessage(Message message) throws IOException {
+    public synchronized void sendMessage(Message message) throws IOException {
         objectOutputStream.writeObject(message);
     }
 
-    public void sendFile(File f) throws IOException {
+    public synchronized void sendFile(File f) throws IOException {
         OutputStream os = socket.getOutputStream();
         FileInputStream fis = new FileInputStream(f);
 

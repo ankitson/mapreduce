@@ -21,18 +21,18 @@ import java.util.Set;
 public class DistributedFile {
 
     private final String FILE_NAME;
-    private final int SPLIT_SIZE;
+    private final int SPLIT_SIZE; //read from config
 
     //map from chunk to set of remote files on hosts where chunk resides
     private Map<Integer, Set<File>> chunksToHosts;
 
     private Map<Host, SocketMessenger> messengers;
 
-    public DistributedFile(File f, Set<Host> nodeSet, int splitSize, Map<Host,SocketMessenger> messengers) throws IOException {
+    public DistributedFile(File f, Map<Host,SocketMessenger> messengers) throws IOException {
         FILE_NAME = f.getName();
-        SPLIT_SIZE = splitSize;
+        SPLIT_SIZE = 10; //read from config
         this.messengers = messengers;
-        chunkAndSend(f, nodeSet);
+        chunkAndSend(f, messengers.keySet());
     }
 
     private void chunkAndSend(File file, Set<Host> nodes) throws IOException {

@@ -39,6 +39,7 @@ public class DistributedFileSystem {
         File testFile = new File("./10lines.txt");
         DistributedFileSystem dfs = new DistributedFileSystem(new File("./dfsConfigFile"));
         DistributedFile df = new DistributedFile(testFile, dfs.nodes, 5, dfs.messengers);
+        DistributedFile df2 = new DistributedFile(testFile, dfs.nodes, 2, dfs.messengers);
         dfs.closeMessengerrs();
     }
 
