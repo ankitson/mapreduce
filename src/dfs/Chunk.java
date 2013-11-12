@@ -1,5 +1,7 @@
 package dfs;
 
+import java.io.Serializable;
+
 /**
  * Created with IntelliJ IDEA.
  * User: ankit
@@ -7,7 +9,7 @@ package dfs;
  * Time: 11:25 PM
  * To change this template use File | Settings | File Templates.
  */
-public class Chunk {
+public class Chunk implements Serializable {
     public static final String CHUNK_PATH = "./tmp/distributed-chunks/"; //read from config
 
     String fileName;

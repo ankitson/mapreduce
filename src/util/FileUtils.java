@@ -32,4 +32,17 @@ public class FileUtils {
         }
         return;
     }
+
+    //create a new file, creating the necessary directory structure if
+    //the dirs do not exist.
+    public static void createFile(File path) throws IOException {
+        if (!path.exists()) {
+            File parentDir = path.getParentFile();
+
+            if (!parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+            path.createNewFile();
+        }
+    }
 }

@@ -1,8 +1,10 @@
 package master;
 
 import jobs.Job;
+import jobs.JobType;
 import util.Host;
 
+import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /**
@@ -20,9 +22,15 @@ import java.util.concurrent.PriorityBlockingQueue;
 public class JobScheduler {
 
     private PriorityBlockingQueue<Job> jobQueue;
+    private boolean ready;
 
     public JobScheduler() {
-        jobQueue = new PriorityBlockingQueue<Job>();
+        jobQueue = new PriorityBlockingQueue<Job>(1, new JobComparator());
+
+        //ONLY FOR TESTING
+        Job dummyJob = new Job(0, new Host("unix1.andrew.cmu.edu", 6666), JobType.DUMMY);
+        jobQueue.add(dummyJob);
+        ready = true;
     }
 
     //if a job has already been tried, maybe try to schedule it on a different node?
@@ -33,12 +41,18 @@ public class JobScheduler {
     }
 
     public Job dequeueNextJob() {
+        //ONLY FOR TESTING
+        ready = false;
+
         return jobQueue.poll();
+
+
+
     }
 
     //change addJob to addJobs(list), ready after whole batch added
     public boolean ready() {
-        return true;
+        return ready;
     }
 
     public void slaveDied(Host slave) {
@@ -47,6 +61,12 @@ public class JobScheduler {
 
     public void slaveAlive(Host slave) {
         return; //reschedule
+    }
+
+    class JobComparator implements Comparator<Job> {
+        public int compare(Job j1, Job j2) {
+            return 1;
+        }
     }
 
 }

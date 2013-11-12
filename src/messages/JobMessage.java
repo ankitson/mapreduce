@@ -15,4 +15,8 @@ public class JobMessage extends Message {
     public JobMessage(Job job) {
         this.job = job;
     }
+
+    public String toString() {
+        return job.toString();
+    }
 }

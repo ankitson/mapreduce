@@ -1,5 +1,7 @@
 package jobs;
 
+import java.io.Serializable;
+
 /**
  * Created with IntelliJ IDEA.
  * User: ankit
@@ -7,6 +9,6 @@ package jobs;
  * Time: 9:50 PM
  * To change this template use File | Settings | File Templates.
  */
-public enum JobType {
+public enum JobType implements Serializable {
     MAP, REDUCE, DUMMY
 }

@@ -1,12 +1,8 @@
 package dfs.node;
 
-import messages.FileInfoMessage;
 import messages.Message;
 import messages.SocketMessenger;
 import util.FileUtils;
-
-import java.io.File;
-import java.io.IOException;
 
 /**
  * Created with IntelliJ IDEA.
@@ -27,7 +23,7 @@ public class DistributedFileSystemNodeThread implements Runnable {
 
     public void run() {
         Message received;
-        while (true) {
+        /*while (true) {
             try {
                 System.out.println("ready to receive");
                 received = dfsServer.receiveMessage();
@@ -45,7 +41,8 @@ public class DistributedFileSystemNodeThread implements Runnable {
             } catch (ClassNotFoundException e) {
                 System.err.println("Illegal message received: " + e);
             }
-        }
+        }*/
+        //TESTING ONLY
 
     }
 }

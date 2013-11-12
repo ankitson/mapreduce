@@ -21,8 +21,9 @@ public class SocketMessenger {
     private static final int SOCKET_TIMEOUT = 3000;
 
     public SocketMessenger(Socket socket) throws IOException {
+        System.out.println("new messenger initialized");
         this.socket = socket;
-        socket.setSoTimeout(SOCKET_TIMEOUT);
+        //socket.setSoTimeout(SOCKET_TIMEOUT); //TESTING PURPOSES
         objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
     }
 

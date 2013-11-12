@@ -1,5 +1,7 @@
 package jobs;
 
+import java.io.Serializable;
+
 /**
  * Created with IntelliJ IDEA.
  * User: ankit
@@ -7,7 +9,7 @@ package jobs;
  * Time: 12:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public interface ReducerInterface<V> {
+public interface ReducerInterface<V> extends Serializable {
 
     public V reduce(V value1, V value2);
 }

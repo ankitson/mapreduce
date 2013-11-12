@@ -6,6 +6,7 @@ import util.Host;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +24,7 @@ public class Master {
     //private final Configuration MAPREDUCE_CONFIG = new Configuration(new File('./config/mapreduce_config.txt'));
     //private final Configuration DFS_CONFIG = new Configuration(new File('./config/dfs_config.txt'));
 
-    private Set<Host> slaves; //parse from config file
+    public Set<Host> slaves; //parse from config file //MAKE PRIVATE LATER
     public Set<File> files; //parse from config file //MAKE PRIVATE LATER
     private Map<File, DistributedFile> filesToDistributedFiles;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
@@ -33,11 +34,18 @@ public class Master {
     private int jobID = 0;
 
 
-    public Master() throws IOException {
+    //yolo constructor for testing fix later
+    public Master(Set<File> files, Set<Host> slaves) throws IOException {
+        this.files = files;
+        this.slaves = slaves;
         initializeNodeMessengers();
+        System.out.println("messengers after init: " + messengers);
+        filesToDistributedFiles = new HashMap<File, DistributedFile>();
         initializeDFS(files);
+        System.out.println("messengers after dfs: " + messengers);
 
         jobQueue = new JobScheduler();
+        System.out.println("messengers after jobschdule: " + messengers);
 
         new Thread(new JobDispatcherThread(jobQueue, messengers)).start(); //fill in args to thread
         for (SocketMessenger slaveMessenger : messengers.values()) {
@@ -61,6 +69,7 @@ public class Master {
                 System.err.println("Unable to connect to slave " + slave + ". Message:  " + e);
             }
         }
+        System.out.println("Messengers initialized to: " + messengers);
     }
 
     public void listenInput() {
@@ -76,11 +85,15 @@ public class Master {
     }
 
     public static void main(String[] args) throws IOException {
-        Master master = new Master();
         Set<File> files = new HashSet<File>();
+        Set<Host> slaves = new HashSet<Host>();
         files.add(new File("./testfile1.txt"));
         files.add(new File("./testfile2.txt"));
-        master.files = files;
+        files.add(new File("./testfile3.txt"));
+        files.add(new File("./testfile4.txt"));
+        System.out.println("files to chunk: " + files);
+        slaves.add(new Host("unix1.andrew.cmu.edu", 6666));
+        Master master = new Master(files, slaves);
         master.listenInput();
 
     }

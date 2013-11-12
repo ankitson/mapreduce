@@ -3,6 +3,7 @@ package jobs;
 import util.Pair;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -12,7 +13,7 @@ import java.util.List;
  * Time: 12:02 AM
  * To change this template use File | Settings | File Templates.
  */
-public interface CombinerInterface<V> {
+public interface CombinerInterface<V> extends Serializable {
 
     public File combine(List<Pair<String, V>> keyValueList);
 }

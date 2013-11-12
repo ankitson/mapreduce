@@ -9,18 +9,19 @@ package util;
  */
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.Socket;
 
 /**
  * Represents a remote or local host as hostname/port
  */
-public class Host {
+public class Host implements Serializable {
 
     public final String HOSTNAME;
     public final int PORT;
     public final String CHUNKS_DIRECTORY = "/tmp/distributed-chunks/";
     public final String REMOTE_CHUNKS_DIR_PATH;
-    private Socket socket = null;
+    private transient Socket socket = null;
 
     public Host(String hostName, int port) {
         HOSTNAME = hostName;
@@ -36,7 +37,20 @@ public class Host {
         return socket;
     }
 
-    public String toString() {
+    /*public String toString() {
         return HOSTNAME + ":" + PORT;
+    }*/ //TESTING ONLY
+
+    public boolean equals(Object other) {
+        if (!(other instanceof Host))
+            return false;
+
+        Host host = (Host) other;
+        return (HOSTNAME.equals(host.HOSTNAME) && (PORT == host.PORT));
+    }
+
+    public int hashCode() {
+        System.out.println("hashing host to: " + (HOSTNAME.hashCode() + PORT));
+        return HOSTNAME.hashCode() + PORT;
     }
 }

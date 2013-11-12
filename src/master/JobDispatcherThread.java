@@ -45,11 +45,18 @@ public class JobDispatcherThread implements Runnable {
             if (!jobQueue.ready())
                 continue;
 
+            System.out.println("job dispatcher - queue ready");
+
             Job dispatchJob = jobQueue.dequeueNextJob();
             dispatchJob.tries++;
+            System.out.println("dispatchJob.host: " + dispatchJob.host);
+            System.out.println("messengers in dispatcher: " + messengers);
+            System.out.println("messengers contains: " + messengers.containsKey(dispatchJob.host));
             SocketMessenger slaveToDispatchTo = messengers.get(dispatchJob.host);
+            System.out.println("slave messenger on job dispatcher: " + slaveToDispatchTo);
             try {
                 slaveToDispatchTo.sendMessage(new JobMessage(dispatchJob));
+                System.out.println("master sent job message: " + dispatchJob);
             } catch (IOException e) {
                 continue;
             }

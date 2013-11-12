@@ -7,8 +7,8 @@ import util.Host;
 import util.KCyclicIterator;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,127 +30,89 @@ public class DistributedFile {
 
     public DistributedFile(File f, Map<Host,SocketMessenger> messengers) throws IOException {
         FILE_NAME = f.getName();
-        SPLIT_SIZE = 10; //read from config
+        SPLIT_SIZE = 5; //read from config //number of lines in each split
         this.messengers = messengers;
+        chunksToHosts = new HashMap<Chunk, Set<Host>>();
         chunkAndSend(f, messengers.keySet());
+
     }
 
-    private void chunkAndSend(File file, Set<Host> nodes) throws IOException {
-
-        KCyclicIterator<Host> nodesIterator = new KCyclicIterator<Host>(nodes,
+    private void chunkAndSend(File file, Set<Host> slaves) {
+        KCyclicIterator<Host> slavesIterator = new KCyclicIterator<Host>(slaves,
                 DistributedFileSystemConstants.REPLICATION_FACTOR);
 
-        int chunkNo = 0;
+        int chunkNo = 1;
+        Chunk currentChunk = new Chunk(file.getName(), chunkNo);
         int lineCount = 0;
-        File fileChunk = null;
-        BufferedWriter chunkWriter = null;
-        boolean chunkSent = true;
-        Chunk chunk = null;
-        Set<Host> currentChunkHosts;
+        System.out.println("before chunk");
+        File currentChunkFile = new File(currentChunk.getLocalChunkPath());
+        System.out.println("after chunk");
 
+        Set<Host> currentChunkHosts = new HashSet<Host>();
+        boolean currentChunkIsEmpty = true;
         try {
+            FileUtils.createFile(currentChunkFile);
+            System.out.println("before chunkwriter");
+            BufferedWriter currentChunkFileWriter = new BufferedWriter(new FileWriter(currentChunkFile));
+            System.out.println("before reader");
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
-
             while ((line = br.readLine()) != null) {
-                if (lineCount % SPLIT_SIZE == 0) {
-                    System.out.println("sending chunk");
+                if ( lineCount % SPLIT_SIZE == 0 && lineCount != 0) {
+                    System.out.println("Sending chunk " + chunkNo);
+                    System.out.println("linecount: " + lineCount);
 
+                    //close the written chunk since it needs to be sent
+                    currentChunkFileWriter.close();
 
-                    chunk = new Chunk(file.getName(), chunkNo);
+                    SocketMessenger slaveMessenger;
+                    currentChunkHosts = new HashSet<Host>();
+                    for (Host slave : slavesIterator.next()) {
+                        slaveMessenger = messengers.get(slave);
 
-                    //close old chunk
-                    if (chunkWriter != null)
-                        chunkWriter.close();
+                        //TODO: better fault tolerance here?
+                        //currently, a chunk will not be replicated on the right number of slaves
+                        //if one of them is dead while chunking
+                        if (slaveMessenger == null)
+                            continue;
 
-                    //send chunk to node
-                    if (fileChunk != null) {
-                        System.out.println("file chunk not null");
-                        List<Host> hosts = nodesIterator.next();
-                        System.out.println("hosts to send chunk to: " + hosts);
-                        currentChunkHosts = new HashSet<Host>();
-                        for (Host host : hosts) {
-                            if (!messengers.containsKey(host)) {
-                                System.err.println("No connection to host " + host + ", skipping.");
-                                continue;
-                            }
-                            currentChunkHosts.add(host);
-
-                            System.out.println("sending chunk " + chunkNo + "to host: " + host);
-                            messengers.get(host).sendMessage(new FileInfoMessage(fileChunk.getName(), fileChunk.length()));
-                            System.out.println("sent file name message: " + fileChunk.getName() + "," + fileChunk.length());
-                            messengers.get(host).sendFile(fileChunk);
-                            System.out.println("sent file: " + FileUtils.print(fileChunk));
-                        }
-                        chunksToHosts.put(chunk, currentChunkHosts);
-                        chunkSent = true;
+                        slaveMessenger.sendMessage(new FileInfoMessage(currentChunkFile.getName(), currentChunkFile.length()));
+                        slaveMessenger.sendFile(currentChunkFile);
+                        System.out.println("Sent chunk " + chunkNo + ": " + FileUtils.print(currentChunkFile));
+                        currentChunkHosts.add(slave);
                     }
+                    chunksToHosts.put(currentChunk, currentChunkHosts);
 
-                    //increment chunk no
+
                     chunkNo++;
-
-                    //open new chunk handles/writers
-                    fileChunk = new File(chunk.getLocalChunkPath());
-
-                    //create new chunk file/dir if doesnt exist
-                    if (!fileChunk.exists()) {
-                        File parentDir = fileChunk.getParentFile();
-
-                        if (!parentDir.exists()) {
-                            parentDir.mkdirs();
-                        }
-                        fileChunk.createNewFile();
-                    }
-                    chunkWriter = new BufferedWriter(new FileWriter(fileChunk));
+                    currentChunk = new Chunk(file.getName(), chunkNo);
+                    currentChunkFile = new File(currentChunk.getLocalChunkPath());
+                    currentChunkFileWriter = new BufferedWriter(new FileWriter(currentChunkFile));
+                    currentChunkIsEmpty = true;
                 }
+                currentChunkFileWriter.write(line+"\n");
+                currentChunkIsEmpty = false;
                 lineCount++;
-                chunkWriter.write(line+"\n");
-                chunkSent = false;
-                System.out.println("at line: " + lineCount);
             }
-            br.close();
-            if (chunkSent == false) {
-                chunkWriter.close();
-                System.out.println("file chunk not null");
-                List<Host> hosts = nodesIterator.next();
-                System.out.println("hosts to send chunk to: " + hosts);
-                for (Host host : hosts) {
-                    if (!messengers.containsKey(host)) {
-                        System.err.println("No connection to host " + host + ", skipping.");
+            if (!currentChunkIsEmpty) {
+                currentChunkFileWriter.close();
+                SocketMessenger slaveMessenger;
+                currentChunkHosts = new HashSet<Host>();
+                for (Host slave: slavesIterator.next()) {
+                    slaveMessenger = messengers.get(slave);
+                    if (slaveMessenger == null)
                         continue;
-                    }
 
-                    System.out.println("sending chunk " + chunkNo + "to host: " + host);
-                    messengers.get(host).sendMessage(new FileInfoMessage(fileChunk.getName(), fileChunk.length()));
-                    System.out.println("sent file name message: " + fileChunk.getName() + "," + fileChunk.length());
-                    messengers.get(host).sendFile(fileChunk);
-                    System.out.println("sent file: " + FileUtils.print(fileChunk));
+                    slaveMessenger.sendMessage(new FileInfoMessage(currentChunkFile.getName(), currentChunkFile.length()));
+                    slaveMessenger.sendFile(currentChunkFile);
+                    currentChunkHosts.add(slave);
                 }
+                chunksToHosts.put(currentChunk, currentChunkHosts);
             }
-        }
-        catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             System.err.println("File to chunk not found: " + e);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("IOException chunking/sending file: " + e);
         }
     }
-
-    public static void main(String[] args) throws IOException {
-        /*File fileChunk = new File("/Users/ankit/a/b/c/bla-new-file.txt");
-        if (!fileChunk.exists()) {
-            File parentDir = fileChunk.getParentFile();
-            if (!parentDir.exists())
-                parentDir.mkdirs();
-            fileChunk.createNewFile();
-        }*/
-
-        File file = new File("./blatest.txt");
-        BufferedReader br = new BufferedReader(new FileReader(file));
-
-
-    }
-
-
-
 }
