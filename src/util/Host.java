@@ -52,10 +52,10 @@ public class Host implements Serializable {
             return false;
 
         Host host = (Host) other;
-        return (HOSTNAME.equals(host.HOSTNAME) && (PORT == host.PORT));
+        return (HOSTNAME.equalsIgnoreCase(host.HOSTNAME)); // && (PORT == host.PORT));
     }
 
     public int hashCode() {
-        return HOSTNAME.hashCode() + PORT;
+        return HOSTNAME.toLowerCase().hashCode(); //+ PORT;
     }
 }

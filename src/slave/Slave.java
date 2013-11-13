@@ -1,7 +1,6 @@
 package slave;
 
 import dfs.Chunk;
-import dfs.node.DistributedFileSystemNodeThread;
 import jobs.Job;
 import messages.*;
 import util.FileUtils;
@@ -23,7 +22,7 @@ import java.net.UnknownHostException;
 public class Slave {
 
     private int LISTEN_PORT = 6666; //read from config file
-    private String MASTER_HOSTNAME = "unix1.andrew.cmu.edu";
+    private String MASTER_HOSTNAME = "UNIX1.ANDREW.CMU.EDU";
     private Host masterHost;
     private Socket masterSocket;
     private SocketMessenger masterMessenger;
@@ -33,8 +32,8 @@ public class Slave {
 
     public Slave() {
         try {
-            hostName = InetAddress.getLocalHost().getHostName();
-            directoryPath = "./tmp/distributedChunks-" + InetAddress.getLocalHost().getHostName() + "/";
+            hostName = InetAddress.getLocalHost().getHostName().toUpperCase();
+            directoryPath = "./tmp/distributedChunks-" + hostName + "/";
         } catch (UnknownHostException e) {
             System.err.println("Unable to create local chunks dir on slave: " + e);
         }
@@ -53,9 +52,6 @@ public class Slave {
         } catch (IOException e) {
             System.err.println("Error when slave trying to connect to master: " + e);
         }
-
-        //start dfs
-        new Thread(new DistributedFileSystemNodeThread(masterMessenger, Chunk.CHUNK_PATH)).start();
 
         while (true) {
             try {
@@ -93,8 +89,7 @@ public class Slave {
                 } else if (message instanceof HeartBeatMessage) {
                     System.out.println("Slave received heartbeat");
                     masterMessenger.sendMessage(new HeartBeatMessage());
-                }
-                else {
+                } else {
                     System.err.println("Slave received illegal message: " + message);
                 }
             } catch (IOException e) {

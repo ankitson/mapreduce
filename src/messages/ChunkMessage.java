@@ -11,12 +11,22 @@ import dfs.Chunk;
  */
 public class ChunkMessage extends Message {
     private Chunk chunk;
+    private String hostName;
 
-    public ChunkMessage(Chunk chunk) {
+    public ChunkMessage(Chunk chunk, String hostName) {
+        this.hostName = hostName.toUpperCase();
         this.chunk = chunk;
     }
 
     public Chunk getChunk() {
         return chunk;
+    }
+
+    public String getHostName() {
+        return hostName;
+    }
+
+    public String toString() {
+        return chunk.toString();
     }
 }

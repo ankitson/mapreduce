@@ -4,7 +4,6 @@ import util.Host;
 
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -27,9 +26,9 @@ public class Chunk implements Serializable {
         this.hosts = hosts;
     }
 
-    public String getPathOnHost(Host host) {
+    public String getPathOnHost(String hostName) {
         String chunkDir = CHUNK_PATH.substring(0, CHUNK_PATH.length() -1);
-        return chunkDir + "-" + host.HOSTNAME + "/" + fileName + "-" + chunkNo;
+        return chunkDir + "-" + hostName.toUpperCase() + "/" + fileName + "-" + chunkNo;
     }
 
     public String getLocalChunkPath() {
@@ -50,14 +49,8 @@ public class Chunk implements Serializable {
         bw.write("blargh");
         bw.close();
 
-
-
-        String newDirectory = file.getParent() + "unix1.andrew.cmu.edu";
+        String newDirectory = file.getParent() + "UNIX1.ANDREW.CMU.EDU";
         System.out.println("new dir: " + newDirectory);
         file.renameTo(new File(Paths.get(newDirectory).resolve(file.getName()).toString()));
-
-        Host h = new Host("unix1.andrew.cmu.edu", 14159);
-        Chunk c = new Chunk("filename.txt", 20, new HashSet<Host>());
-        System.out.println("path: " + c.getPathOnHost(h));
     }
 }

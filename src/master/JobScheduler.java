@@ -28,8 +28,10 @@ public class JobScheduler {
         jobQueue = new PriorityBlockingQueue<Job>(1, new JobComparator());
 
         //ONLY FOR TESTING
-        Job dummyJob = new Job(0, new Host("unix1.andrew.cmu.edu", 6666), JobType.DUMMY);
-        jobQueue.add(dummyJob);
+        //Job dummyJob = new Job(0, new Host("unix1.andrew.cmu.edu", 6666), JobType.DUMMY);
+        Job mapJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), JobType.MAP);
+        //jobQueue.add(dummyJob);
+        jobQueue.add(mapJob);
         ready = true;
     }
 

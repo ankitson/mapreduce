@@ -28,7 +28,7 @@ public class DistributedFileSystemNode {
 
         isListening = true;
         try {
-            directoryPath = "./tmp/distributedChunks-" + InetAddress.getLocalHost().getHostName() + "/";
+            directoryPath = "./tmp/distributedChunks-" + InetAddress.getLocalHost().getHostName().toUpperCase() + "/";
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }

@@ -44,6 +44,14 @@ public class DistributedFile {
         KCyclicIterator<Host> slavesIterator = new KCyclicIterator<Host>(slaves,
                 DistributedFileSystemConstants.REPLICATION_FACTOR);
 
+        for (int i=0; i<6;i++) {
+            System.out.println("Round " + i);
+            for (Host slave : slavesIterator.next()) {
+                System.out.println("\t" + slave);
+            }
+        }
+
+
         int chunkNo = 1;
 
         Chunk currentChunk = new Chunk(file.getName(), chunkNo, null);
@@ -79,8 +87,10 @@ public class DistributedFile {
                         //TODO: better fault tolerance here?
                         //currently, a chunk will not be replicated on the right number of slaves
                         //if one of them is dead while chunking
-                        if (slaveMessenger == null)
+                        if (slaveMessenger == null) {
+                            System.out.println("messenger was null during file distribution: " + slaveMessenger);
                             continue;
+                        }
 
                         slaveMessenger.sendMessage(new FileInfoMessage(currentChunkFile.getName(), currentChunkFile.length()));
                         slaveMessenger.sendFile(currentChunkFile);
