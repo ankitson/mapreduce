@@ -36,10 +36,12 @@ public class Chunk implements Serializable {
         return CHUNK_PATH + fileName + "-" + chunkNo;
     }
 
-
+    public void setHosts(Set<Host> hosts) {
+        this.hosts = hosts;
+    }
 
     public String toString() {
-        return "[" + fileName + " : " + chunkNo + "]";
+        return "[" + fileName + " : " + chunkNo + "] stored at { " + hosts + " }";
     }
 
     public static void main(String[] args) throws IOException {

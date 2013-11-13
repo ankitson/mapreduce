@@ -21,7 +21,7 @@ public class DistributedFile {
     private final String FILE_NAME;
     private final int SPLIT_SIZE; //read from config
 
-    private Map<Chunk,Set<Host>> chunksToHosts;
+    private List<Chunk> chunks;
 
     private Map<Host, SocketMessenger> messengers;
 
@@ -29,13 +29,13 @@ public class DistributedFile {
         FILE_NAME = f.getName();
         SPLIT_SIZE = 5; //read from config //number of lines in each split
         this.messengers = messengers;
-        chunksToHosts = new HashMap<Chunk, Set<Host>>();
+        chunks = new LinkedList<Chunk>();
         chunkAndSend(f, new ArrayList<Host>(messengers.keySet()));
 
     }
 
     public String toString() {
-        return "[DistributedFile: " + FILE_NAME + " -> " + chunksToHosts + "]";
+        return "[DistributedFile: " + FILE_NAME + " -> " + chunks + "]";
     }
 
 
@@ -46,7 +46,7 @@ public class DistributedFile {
 
         int chunkNo = 1;
 
-        Chunk currentChunk = new Chunk(file.getName(), chunkNo);
+        Chunk currentChunk = new Chunk(file.getName(), chunkNo, null);
 
         int lineCount = 0;
         System.out.println("before chunk");
@@ -87,11 +87,12 @@ public class DistributedFile {
                         System.out.println("Sent chunk " + chunkNo + " to host: " + slave);
                         currentChunkHosts.add(slave);
                     }
-                    chunksToHosts.put(currentChunk, currentChunkHosts);
+                    currentChunk.setHosts(currentChunkHosts);
+                    chunks.add(currentChunk);
 
 
                     chunkNo++;
-                    currentChunk = new Chunk(file.getName(), chunkNo);
+                    currentChunk = new Chunk(file.getName(), chunkNo, null);
                     currentChunkFile = new File(currentChunk.getLocalChunkPath());
                     currentChunkFileWriter = new BufferedWriter(new FileWriter(currentChunkFile));
                     currentChunkIsEmpty = true;
@@ -115,7 +116,8 @@ public class DistributedFile {
                     System.out.println("Sent chunk " + chunkNo + " to host: " + slave);
                     currentChunkHosts.add(slave);
                 }
-                chunksToHosts.put(currentChunk, currentChunkHosts);
+                currentChunk.setHosts(currentChunkHosts);
+                chunks.add(currentChunk);
             }
         } catch (FileNotFoundException e) {
             System.err.println("File to chunk not found: " + e);
