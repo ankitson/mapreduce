@@ -5,6 +5,7 @@ import messages.SocketMessenger;
 import util.FileUtils;
 import util.Host;
 import util.KCyclicIterator;
+import util.Pair;
 
 import java.io.*;
 import java.util.*;
@@ -32,13 +33,15 @@ public class DistributedFile {
         SPLIT_SIZE = 5; //read from config //number of lines in each split
         this.messengers = messengers;
         chunks = new LinkedList<Chunk>();
-
         chunkAndSend(f, new ArrayList<Host>(messengers.keySet()));
-
     }
 
     public String toString() {
         return "[DistributedFile: " + FILE_NAME + " -> " + chunks + "]";
+    }
+
+    public List<Chunk> getChunks() {
+        return chunks;
     }
 
 
@@ -47,18 +50,11 @@ public class DistributedFile {
         if (slavesIterator == null)
             slavesIterator = new KCyclicIterator<Host>(slaves,DistributedFileSystemConstants.REPLICATION_FACTOR);
 
-        for (int i=0; i<6;i++) {
-            System.out.println("Round " + i);
-            for (Host slave : slavesIterator.next()) {
-                System.out.println("\t" + slave);
-            }
-        }
-
-
         int chunkNo = 1;
 
-        Chunk currentChunk = new Chunk(file.getName(), chunkNo, null);
+        Chunk currentChunk = new Chunk(file.getName(), chunkNo, null, new Pair<Integer,Integer>());
 
+        int prevChunkEnd = 0;
         int lineCount = 0;
         System.out.println("before chunk");
         System.out.println("local chunk path: " + currentChunk.getLocalChunkPath());
@@ -101,11 +97,13 @@ public class DistributedFile {
                         currentChunkHosts.add(slave);
                     }
                     currentChunk.setHosts(currentChunkHosts);
+                    currentChunk.setRecordRange(new Pair<Integer,Integer>(prevChunkEnd+1,lineCount));
+                    prevChunkEnd = lineCount;
                     chunks.add(currentChunk);
 
 
                     chunkNo++;
-                    currentChunk = new Chunk(file.getName(), chunkNo, null);
+                    currentChunk = new Chunk(file.getName(), chunkNo, null, new Pair<Integer,Integer>());
                     currentChunkFile = new File(currentChunk.getLocalChunkPath());
                     currentChunkFileWriter = new BufferedWriter(new FileWriter(currentChunkFile));
                     currentChunkIsEmpty = true;
@@ -130,6 +128,7 @@ public class DistributedFile {
                     currentChunkHosts.add(slave);
                 }
                 currentChunk.setHosts(currentChunkHosts);
+                currentChunk.setRecordRange(new Pair<Integer,Integer>(prevChunkEnd+1,lineCount));
                 chunks.add(currentChunk);
             }
         } catch (FileNotFoundException e) {

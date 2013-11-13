@@ -32,6 +32,7 @@ public class SocketMessenger {
 
     public synchronized void sendMessage(Message message) throws IOException {
         objectOutputStream.writeObject(message);
+        objectOutputStream.flush();
     }
 
     public synchronized void sendFile(File f) throws IOException {
@@ -44,6 +45,7 @@ public class SocketMessenger {
             os.write(buffer, 0, count);
         }
         fis.close();
+        os.flush();
     }
 
     public Message receiveMessage() throws IOException, ClassNotFoundException {

@@ -9,7 +9,7 @@ import java.io.Serializable;
  * Time: 12:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public interface ReducerInterface<V> extends Serializable {
+public interface ReducerInterface<V extends Serializable> extends Serializable {
 
     public V reduce(V value1, V value2);
 }

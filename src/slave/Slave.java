@@ -57,11 +57,13 @@ public class Slave {
             try {
                 Message message = masterMessenger.receiveMessage();
                 System.out.println("Slave received message: " + message);
+
+                //TODO: Create job and mapjobthread with correct generic types
                 if (message instanceof JobMessage) {
                     Job job = ((JobMessage) message).job;
                     switch (job.jobType) {
                         case MAP:
-                            new Thread(new MapJobServicerThread()).start();
+                            new Thread(new MapJobServicerThread(job, masterMessenger, job.host.HOSTNAME)).start();
                             break;
                         case REDUCE:
                             new Thread(new ReduceJobServicerThread()).start();

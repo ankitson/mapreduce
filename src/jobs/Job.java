@@ -18,8 +18,10 @@ import java.io.Serializable;
  * Represents any type of job - map/reduce/combine/dummy
  *
  * Set the fields you don't need to be null
+ *
+ * We need unused K for reducer jobs too
  */
-public class Job<V> implements Serializable {
+public class Job<K extends Serializable,V extends Serializable> implements Serializable {
 
     //for general jobs
     public int internalJobID;
@@ -30,7 +32,9 @@ public class Job<V> implements Serializable {
 
     //map jobs
     public Chunk chunk;
-    public MapperInterface<V> mapperInterface;
+    //public MapperInterface<K,V> mapperInterface; TESTING
+    public MapperInterface mapperInterface;
+    public Pair<Integer, Integer> recordRange;
 
     //reduce jobs
     public ReducerInterface<V> reducerInterface;
@@ -42,6 +46,7 @@ public class Job<V> implements Serializable {
         this.jobType = jobType;
         tries = 0;
         success = false;
+        recordRange = null;
 
         chunk = null;
         mapperInterface = null;
@@ -57,10 +62,12 @@ public class Job<V> implements Serializable {
     }
 
     //shortcut for map jobs
-    public Job(int jobID, Host host, MapperInterface<V> mapperInterface, Chunk chunk) {
+    //public Job(int jobID, Host host, MapperInterface<K,V> mapperInterface, Chunk chunk) { TESTING
+    public Job(int jobID, Host host, MapperInterface mapperInterface, Chunk chunk) {
         this(jobID, host, JobType.MAP);
         this.mapperInterface = mapperInterface;
         this.chunk = chunk;
+        this.recordRange = chunk.getRecordRange();
     }
 
     //shortcut for reduce jobs

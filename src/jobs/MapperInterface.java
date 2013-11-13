@@ -1,5 +1,7 @@
 package jobs;
 
+import util.Pair;
+
 import java.io.Serializable;
 
 /**
@@ -9,10 +11,12 @@ import java.io.Serializable;
  * Time: 11:29 PM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class MapperInterface<V> implements Serializable {
+
+//public abstract class MapperInterface<K extends Serializable,V extends Serializable> implements Serializable {
+public abstract class MapperInterface implements Serializable { //TESTING
 
     //set to null if no combine step
-    public CombinerInterface<V> combiner;
-    public abstract V map(String record, int recordNo);
+    public CombinerInterface combiner;
+    public abstract Pair map(String record, int recordNo);
 
 }

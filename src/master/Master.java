@@ -1,5 +1,6 @@
 package master;
 
+import dfs.Chunk;
 import dfs.DistributedFile;
 import jobs.Job;
 import messages.SocketMessenger;
@@ -63,8 +64,13 @@ public class Master {
 
         new Thread(new HealthCheckerThread(messengers)).start();
 
-        jobQueue = new JobScheduler();
+        Chunk file1Chunk2 = filesToDistributedFiles.get(new File("./testfile1.txt")).getChunks().get(1);
+        //chunk arg ONLY FOR TESTING
+        jobQueue = new JobScheduler(file1Chunk2);
         System.out.println("messengers after jobschdule: " + messengers);
+
+
+
 
         new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start(); //fill in args to thread
         for (SocketMessenger slaveMessenger : messengers.values()) {

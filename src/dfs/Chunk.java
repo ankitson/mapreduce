@@ -1,6 +1,7 @@
 package dfs;
 
 import util.Host;
+import util.Pair;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -19,11 +20,25 @@ public class Chunk implements Serializable {
     String fileName;
     int chunkNo;
     Set<Host> hosts;
+    Pair<Integer,Integer> recordRange; //the range of records this chunk contains
 
-    public Chunk(String fileName, int chunkNo, Set<Host> hosts) {
+    public Chunk(String fileName, int chunkNo, Set<Host> hosts, Pair<Integer,Integer> recordRange) {
         this.fileName = fileName;
         this.chunkNo = chunkNo;
         this.hosts = hosts;
+        this.recordRange = recordRange;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public int getChunkNo() {
+        return chunkNo;
+    }
+
+    public Set<Host> getHosts() {
+        return hosts;
     }
 
     public String getPathOnHost(String hostName) {
@@ -39,8 +54,17 @@ public class Chunk implements Serializable {
         this.hosts = hosts;
     }
 
+    public void setRecordRange(Pair<Integer,Integer> recordRange) {
+        this.recordRange = recordRange;
+    }
+
+    public Pair<Integer,Integer> getRecordRange() {
+        return recordRange;
+    }
+
     public String toString() {
-        return "[" + fileName + " : " + chunkNo + "] stored at { " + hosts + " }";
+        return String.format("[%s: #%d (lines %d-%d replicated on {%s}",fileName,chunkNo,
+                recordRange.getFirst(),recordRange.getSecond(),hosts);
     }
 
     public static void main(String[] args) throws IOException {

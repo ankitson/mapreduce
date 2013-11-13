@@ -43,6 +43,8 @@ public class FileUtils {
                 parentDir.mkdirs();
             }
             path.createNewFile();
+        } else {
+            path.delete();
         }
     }
 }

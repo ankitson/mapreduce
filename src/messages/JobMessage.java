@@ -12,8 +12,15 @@ import jobs.Job;
 public class JobMessage extends Message {
 
     public Job job;
+    public String fileName;
+
     public JobMessage(Job job) {
         this.job = job;
+    }
+
+    public JobMessage(Job job, String fileName) {
+        this.job = job;
+        this.fileName = fileName;
     }
 
     public String toString() {
