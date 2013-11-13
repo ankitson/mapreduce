@@ -22,7 +22,7 @@ import java.io.Serializable;
 public class Job<V> implements Serializable {
 
     //for general jobs
-    public int jobID;
+    public int internalJobID;
     public Host host; //the host the job is running on
     public int tries; //number of times job has been tried before
     public boolean success; //whether job successful or not
@@ -37,7 +37,7 @@ public class Job<V> implements Serializable {
     public Pair<Host, Host> reduceHosts;
 
     public Job(int jobID, Host host, JobType jobType) {
-        this.jobID = jobID;
+        this.internalJobID = jobID;
         this.host = host;
         this.jobType = jobType;
         tries = 0;
@@ -71,6 +71,13 @@ public class Job<V> implements Serializable {
     }
 
     public String toString() {
-        return String.format("[%d]: [%s] job on [%s] (%s)",jobID, jobType, host, success);
+        return String.format("[%d]: [%s] job on [%s] (%s)",internalJobID, jobType, host, success);
+    }
+
+    public boolean equals(Object other) {
+        if (!(other instanceof Job))
+            return false;
+
+        return internalJobID == ((Job) other).internalJobID;
     }
 }

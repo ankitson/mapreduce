@@ -6,6 +6,7 @@ import messages.SocketMessenger;
 import util.Host;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -34,9 +35,13 @@ public class JobDispatcherThread implements Runnable {
     private static int jobID = 0;
     private JobScheduler jobQueue;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
-    public JobDispatcherThread(JobScheduler jobQueue, ConcurrentHashMap<Host, SocketMessenger> messengers) {
+    private List<Job> runningJobs;
+
+    public JobDispatcherThread(JobScheduler jobQueue, ConcurrentHashMap<Host, SocketMessenger> messengers,
+                               List<Job> runningJobs) {
         this.jobQueue = jobQueue;
         this.messengers = messengers;
+        this.runningJobs = runningJobs;
     }
 
     //should this busy-loop or have a timeout?
@@ -57,6 +62,7 @@ public class JobDispatcherThread implements Runnable {
             try {
                 slaveToDispatchTo.sendMessage(new JobMessage(dispatchJob));
                 System.out.println("master sent job message: " + dispatchJob);
+                runningJobs.add(dispatchJob);
             } catch (IOException e) {
                 continue;
             }

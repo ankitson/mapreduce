@@ -1,15 +1,13 @@
 package master;
 
 import dfs.DistributedFile;
+import jobs.Job;
 import messages.SocketMessenger;
 import util.Host;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -35,7 +33,9 @@ public class Master {
 
     private JobScheduler jobQueue;
 
-    private int jobID = 0;
+    List<Job> runningJobs;
+
+    private int internalJobID = 0;
 
 
     //yolo constructor for testing fix later
@@ -52,6 +52,8 @@ public class Master {
             ;
         }
 
+        runningJobs = Collections.synchronizedList(new ArrayList<Job>());
+
         //DFS assumes that slaves dont die
         System.out.println("messengers after init: " + messengers);
         filesToDistributedFiles = new HashMap<File, DistributedFile>();
@@ -64,9 +66,9 @@ public class Master {
         jobQueue = new JobScheduler();
         System.out.println("messengers after jobschdule: " + messengers);
 
-        new Thread(new JobDispatcherThread(jobQueue, messengers)).start(); //fill in args to thread
+        new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start(); //fill in args to thread
         for (SocketMessenger slaveMessenger : messengers.values()) {
-            new Thread(new SlaveListenerThread(slaveMessenger, jobQueue, messengers)).start();
+            new Thread(new SlaveListenerThread(slaveMessenger, jobQueue, messengers, runningJobs)).start();
             //fill in other args to thread ?
         }
     }
@@ -80,6 +82,25 @@ public class Master {
     public void listenInput() {
         System.out.println("Welcome to MapReduce!");
         System.out.println("Connected slaves:" + slaves);
+
+        Scanner in = new Scanner(System.in);
+        while (true) {
+            String line = in.nextLine();
+            if (line.equals("jobs")) {
+                for (Job job : runningJobs) {
+                    System.out.println(job);
+                }
+            } else if (line.equals("files")) {
+                for (DistributedFile df : filesToDistributedFiles.values()) {
+                    System.out.println(df);
+                }
+            } else if (line.equals("slaves")) {
+                for (Host host : messengers.keySet()) {
+                    System.out.println(host.HOSTNAME);
+                }
+            }
+
+        }
 
         //every time the user inputs an add job,
         //job.jobID = jobID

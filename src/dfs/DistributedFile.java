@@ -34,13 +34,20 @@ public class DistributedFile {
 
     }
 
+    public String toString() {
+        return "[DistributedFile: " + FILE_NAME + " -> " + chunksToHosts + "]";
+    }
+
+
     //must use arraylist
     private void chunkAndSend(File file, List<Host> slaves) {
         KCyclicIterator<Host> slavesIterator = new KCyclicIterator<Host>(slaves,
                 DistributedFileSystemConstants.REPLICATION_FACTOR);
 
         int chunkNo = 1;
+
         Chunk currentChunk = new Chunk(file.getName(), chunkNo);
+
         int lineCount = 0;
         System.out.println("before chunk");
         System.out.println("local chunk path: " + currentChunk.getLocalChunkPath());

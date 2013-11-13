@@ -107,6 +107,7 @@ public class Slave {
 
     public static void main(String[] args) {
         Slave slave = new Slave();
+        new Thread(new FileServerThread()).start();
         slave.mainLoop();
     }
 

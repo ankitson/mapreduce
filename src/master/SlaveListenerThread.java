@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,13 +31,15 @@ public class SlaveListenerThread implements Runnable {
     private JobScheduler jobScheduler;
     private SocketMessenger slaveMessenger;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
+    private List<Job> runningJobs;
     private final int MAX_JOB_TRIES = 3; //read from config
 
     public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler,
-                               ConcurrentHashMap<Host, SocketMessenger> messengers) {
+                               ConcurrentHashMap <Host, SocketMessenger> messengers, List<Job> runningJobs) {
         this.slaveMessenger = slaveMessenger;
         this.jobScheduler = jobScheduler;
         this.messengers = messengers;
+        this.runningJobs = runningJobs;
     }
 
     public void run() {
@@ -50,6 +53,7 @@ public class SlaveListenerThread implements Runnable {
                         System.out.println(job + " completed successfully");
                         //add to user specific data structures here
                         //tell user where result of map/reduce is?
+                        runningJobs.remove(job);
                     }
                     else { //job failed
                         if (job.tries == MAX_JOB_TRIES) {
@@ -81,6 +85,9 @@ public class SlaveListenerThread implements Runnable {
                 }
                 return; //kill this thread
             } catch (IOException e) {
+                // we dont terminate the slave connection here - if it is a one off bad message , it will be ignored
+                // if the socket has been closed because the slave is dead, the thread will eventually die due to
+                // a timeout on the heartbeat
                 System.err.println("Error receiving message from slave (possibly timeout): " + e);
             } catch (ClassNotFoundException e) {
                 System.err.println("Illegal message received from slave: " + e);
