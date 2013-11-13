@@ -25,11 +25,14 @@ public class DistributedFile {
 
     private Map<Host, SocketMessenger> messengers;
 
+    private static KCyclicIterator<Host> slavesIterator = null;
+
     public DistributedFile(File f, Map<Host,SocketMessenger> messengers) throws IOException {
         FILE_NAME = f.getName();
         SPLIT_SIZE = 5; //read from config //number of lines in each split
         this.messengers = messengers;
         chunks = new LinkedList<Chunk>();
+
         chunkAndSend(f, new ArrayList<Host>(messengers.keySet()));
 
     }
@@ -41,8 +44,8 @@ public class DistributedFile {
 
     //must use arraylist
     private void chunkAndSend(File file, List<Host> slaves) {
-        KCyclicIterator<Host> slavesIterator = new KCyclicIterator<Host>(slaves,
-                DistributedFileSystemConstants.REPLICATION_FACTOR);
+        if (slavesIterator == null)
+            slavesIterator = new KCyclicIterator<Host>(slaves,DistributedFileSystemConstants.REPLICATION_FACTOR);
 
         for (int i=0; i<6;i++) {
             System.out.println("Round " + i);
