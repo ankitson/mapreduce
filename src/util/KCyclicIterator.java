@@ -64,6 +64,7 @@ public class KCyclicIterator<E> implements Iterator<List<E>> {
         test.add(3);
 
         KCyclicIterator<Integer> kIterator = new KCyclicIterator<Integer>(test, 2);
+
         for (int i=0;i<5;i++) {
             System.out.println(kIterator.next());
         }

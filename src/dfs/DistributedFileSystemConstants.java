@@ -9,7 +9,7 @@ package dfs;
  */
 public final class DistributedFileSystemConstants {
 
-    public static final int REPLICATION_FACTOR = 1;
+    public static final int REPLICATION_FACTOR = 2;
 
     /*public Set<Host> nodes;
     private Map<Host, SocketMessenger> messengers;

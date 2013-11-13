@@ -7,10 +7,7 @@ import util.Host;
 import util.KCyclicIterator;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -33,11 +30,12 @@ public class DistributedFile {
         SPLIT_SIZE = 5; //read from config //number of lines in each split
         this.messengers = messengers;
         chunksToHosts = new HashMap<Chunk, Set<Host>>();
-        chunkAndSend(f, messengers.keySet());
+        chunkAndSend(f, new ArrayList<Host>(messengers.keySet()));
 
     }
 
-    private void chunkAndSend(File file, Set<Host> slaves) {
+    //must use arraylist
+    private void chunkAndSend(File file, List<Host> slaves) {
         KCyclicIterator<Host> slavesIterator = new KCyclicIterator<Host>(slaves,
                 DistributedFileSystemConstants.REPLICATION_FACTOR);
 
@@ -45,6 +43,7 @@ public class DistributedFile {
         Chunk currentChunk = new Chunk(file.getName(), chunkNo);
         int lineCount = 0;
         System.out.println("before chunk");
+        System.out.println("local chunk path: " + currentChunk.getLocalChunkPath());
         File currentChunkFile = new File(currentChunk.getLocalChunkPath());
         System.out.println("after chunk");
 
@@ -59,14 +58,14 @@ public class DistributedFile {
             String line;
             while ((line = br.readLine()) != null) {
                 if ( lineCount % SPLIT_SIZE == 0 && lineCount != 0) {
-                    System.out.println("Sending chunk " + chunkNo);
-                    System.out.println("linecount: " + lineCount);
-
                     //close the written chunk since it needs to be sent
                     currentChunkFileWriter.close();
 
+                    System.out.println("Sending chunk " + chunkNo + ": " + FileUtils.print(currentChunkFile));
+
                     SocketMessenger slaveMessenger;
                     currentChunkHosts = new HashSet<Host>();
+
                     for (Host slave : slavesIterator.next()) {
                         slaveMessenger = messengers.get(slave);
 
@@ -78,7 +77,7 @@ public class DistributedFile {
 
                         slaveMessenger.sendMessage(new FileInfoMessage(currentChunkFile.getName(), currentChunkFile.length()));
                         slaveMessenger.sendFile(currentChunkFile);
-                        System.out.println("Sent chunk " + chunkNo + ": " + FileUtils.print(currentChunkFile));
+                        System.out.println("Sent chunk " + chunkNo + " to host: " + slave);
                         currentChunkHosts.add(slave);
                     }
                     chunksToHosts.put(currentChunk, currentChunkHosts);
@@ -96,6 +95,7 @@ public class DistributedFile {
             }
             if (!currentChunkIsEmpty) {
                 currentChunkFileWriter.close();
+                System.out.println("Sending chunk " + chunkNo + ": " + FileUtils.print(currentChunkFile));
                 SocketMessenger slaveMessenger;
                 currentChunkHosts = new HashSet<Host>();
                 for (Host slave: slavesIterator.next()) {
@@ -105,6 +105,7 @@ public class DistributedFile {
 
                     slaveMessenger.sendMessage(new FileInfoMessage(currentChunkFile.getName(), currentChunkFile.length()));
                     slaveMessenger.sendFile(currentChunkFile);
+                    System.out.println("Sent chunk " + chunkNo + " to host: " + slave);
                     currentChunkHosts.add(slave);
                 }
                 chunksToHosts.put(currentChunk, currentChunkHosts);

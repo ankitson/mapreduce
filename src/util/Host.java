@@ -37,9 +37,9 @@ public class Host implements Serializable {
         return socket;
     }
 
-    /*public String toString() {
+    public String toString() {
         return HOSTNAME + ":" + PORT;
-    }*/ //TESTING ONLY
+    }
 
     public boolean equals(Object other) {
         if (!(other instanceof Host))
@@ -50,7 +50,6 @@ public class Host implements Serializable {
     }
 
     public int hashCode() {
-        System.out.println("hashing host to: " + (HOSTNAME.hashCode() + PORT));
         return HOSTNAME.hashCode() + PORT;
     }
 }

@@ -93,6 +93,8 @@ public class Master {
         files.add(new File("./testfile4.txt"));
         System.out.println("files to chunk: " + files);
         slaves.add(new Host("unix1.andrew.cmu.edu", 6666));
+        slaves.add(new Host("unix2.andrew.cmu.edu", 6666));
+        slaves.add(new Host("unix3.andrew.cmu.edu", 6666));
         Master master = new Master(files, slaves);
         master.listenInput();
 

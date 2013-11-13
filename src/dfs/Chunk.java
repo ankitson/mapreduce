@@ -1,6 +1,7 @@
 package dfs;
 
-import java.io.Serializable;
+import java.io.*;
+import java.nio.file.Paths;
 
 /**
  * Created with IntelliJ IDEA.
@@ -22,5 +23,18 @@ public class Chunk implements Serializable {
 
     public String getLocalChunkPath() {
         return CHUNK_PATH + fileName + "-" + chunkNo;
+    }
+
+    public static void main(String[] args) throws IOException {
+        File file = new File("./bla.txt");
+        BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+        bw.write("blargh");
+        bw.close();
+
+
+
+        String newDirectory = file.getParent() + "unix1.andrew.cmu.edu";
+        System.out.println("new dir: " + newDirectory);
+        file.renameTo(new File(Paths.get(newDirectory).resolve(file.getName()).toString()));
     }
 }

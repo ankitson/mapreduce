@@ -31,9 +31,11 @@ public class Slave {
     private SocketMessenger masterMessenger;
 
     private String directoryPath;
+    private String hostName;
 
     public Slave() {
         try {
+            hostName = InetAddress.getLocalHost().getHostName();
             directoryPath = "./tmp/distributedChunks-" + InetAddress.getLocalHost().getHostName() + "/";
         } catch (UnknownHostException e) {
             System.err.println("Unable to create local chunks dir on slave: " + e);
@@ -81,6 +83,16 @@ public class Slave {
                     File receivedFile = new File(Chunk.CHUNK_PATH + fim.getFileName());
                     masterMessenger.receiveFile(receivedFile, (int) fim.getFileSize());
                     System.out.println("received file" + FileUtils.print(receivedFile));
+
+                    //append the hostname to the chunk dir and copy the file there
+                    String fullPath = receivedFile.getCanonicalPath();
+                    String parentDir = fullPath.substring(0,fullPath.lastIndexOf("/"));
+                    System.out.println("parent dir: " + parentDir);
+                    String newDir = parentDir + "-" + hostName + "/";
+                    FileUtils.createDirectory(newDir);
+                    String fullNewPath = newDir + fim.getFileName();
+                    System.out.println("full new path: " + fullNewPath);
+                    System.out.println("rename: " + receivedFile.renameTo(new File(fullNewPath)));
                 }
                 else {
                     System.err.println("Slave received illegal message: " + message);
