@@ -24,6 +24,10 @@ public class Master {
     //private final Configuration MAPREDUCE_CONFIG = new Configuration(new File('./config/mapreduce_config.txt'));
     //private final Configuration DFS_CONFIG = new Configuration(new File('./config/dfs_config.txt'));
 
+    //number of slaves
+    //master will wait until all slaves connect
+    int NUMBER_OF_SLAVES = 3;
+
     public Set<Host> slaves; //parse from config file //MAKE PRIVATE LATER
     public Set<File> files; //parse from config file //MAKE PRIVATE LATER
     private Map<File, DistributedFile> filesToDistributedFiles;
@@ -38,11 +42,24 @@ public class Master {
     public Master(Set<File> files, Set<Host> slaves) throws IOException {
         this.files = files;
         this.slaves = slaves;
-        initializeNodeMessengers();
+
+        messengers = new ConcurrentHashMap<Host,SocketMessenger>();
+        new Thread(new SlaveJoinThread(messengers)).start();
+        System.out.println("Waiting for all slaves to connect.");
+
+        //if some slave never starts, it will infinite loop
+        while (messengers.size() < NUMBER_OF_SLAVES) {
+            ;
+        }
+
+        //DFS assumes that slaves dont die
         System.out.println("messengers after init: " + messengers);
         filesToDistributedFiles = new HashMap<File, DistributedFile>();
         initializeDFS(files);
         System.out.println("messengers after dfs: " + messengers);
+
+
+        new Thread(new HealthCheckerThread(messengers)).start();
 
         jobQueue = new JobScheduler();
         System.out.println("messengers after jobschdule: " + messengers);
@@ -58,18 +75,6 @@ public class Master {
         for (File file : files) {
             filesToDistributedFiles.put(file, new DistributedFile(file, messengers));
         }
-    }
-
-    private void initializeNodeMessengers() {
-        messengers = new ConcurrentHashMap<Host,SocketMessenger>();
-        for (Host slave : slaves) {
-            try {
-                messengers.put(slave, new SocketMessenger(slave.getSocket()));
-            } catch (IOException e) {
-                System.err.println("Unable to connect to slave " + slave + ". Message:  " + e);
-            }
-        }
-        System.out.println("Messengers initialized to: " + messengers);
     }
 
     public void listenInput() {
@@ -92,9 +97,9 @@ public class Master {
         files.add(new File("./testfile3.txt"));
         files.add(new File("./testfile4.txt"));
         System.out.println("files to chunk: " + files);
-        slaves.add(new Host("unix1.andrew.cmu.edu", 6666));
         slaves.add(new Host("unix2.andrew.cmu.edu", 6666));
         slaves.add(new Host("unix3.andrew.cmu.edu", 6666));
+        slaves.add(new Host("unix4.andrew.cmu.edu", 6666));
         Master master = new Master(files, slaves);
         master.listenInput();
 

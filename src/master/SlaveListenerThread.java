@@ -9,12 +9,17 @@ package master;
  */
 
 import jobs.Job;
+import messages.HeartBeatMessage;
 import messages.JobMessage;
 import messages.Message;
 import messages.SocketMessenger;
 import util.Host;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.SocketTimeoutException;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -55,7 +60,26 @@ public class SlaveListenerThread implements Runnable {
                             jobScheduler.addJob(job);
                         }
                     }
+                } else if (message instanceof HeartBeatMessage) {
+                    System.out.println("Slave OK");
                 }
+            } catch (SocketTimeoutException e) {
+                System.err.println("Slave died!");
+
+                //remove the messenger for this slave
+                Iterator<Map.Entry<Host, SocketMessenger>> entryIterator = messengers.entrySet().iterator();
+                while (entryIterator.hasNext()) {
+                    Map.Entry<Host, SocketMessenger> entry = entryIterator.next();
+                    Host host = entry.getKey();
+                    SocketMessenger messenger = entry.getValue();
+                    InetAddress inetAddress = messenger.socket.getInetAddress();
+                    InetAddress slaveMessengerAddress = slaveMessenger.socket.getInetAddress();
+                    if (inetAddress.equals(slaveMessengerAddress)) {
+                        entryIterator.remove();
+                        jobScheduler.slaveDied(host);
+                    }
+                }
+                return; //kill this thread
             } catch (IOException e) {
                 System.err.println("Error receiving message from slave (possibly timeout): " + e);
             } catch (ClassNotFoundException e) {

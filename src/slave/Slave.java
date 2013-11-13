@@ -3,16 +3,13 @@ package slave;
 import dfs.Chunk;
 import dfs.node.DistributedFileSystemNodeThread;
 import jobs.Job;
-import messages.FileInfoMessage;
-import messages.JobMessage;
-import messages.Message;
-import messages.SocketMessenger;
+import messages.*;
 import util.FileUtils;
+import util.Host;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
@@ -26,7 +23,8 @@ import java.net.UnknownHostException;
 public class Slave {
 
     private int LISTEN_PORT = 6666; //read from config file
-    private ServerSocket listenSocket;
+    private String MASTER_HOSTNAME = "unix1.andrew.cmu.edu";
+    private Host masterHost;
     private Socket masterSocket;
     private SocketMessenger masterMessenger;
 
@@ -43,22 +41,21 @@ public class Slave {
         masterSocket = null;
     }
 
-    public void listen() {
+    public void mainLoop() {
+
+        //connect to master
         try {
-            listenSocket = new ServerSocket(LISTEN_PORT);
-            System.out.println("Slave listening on " + LISTEN_PORT);
+            masterSocket = new Socket(MASTER_HOSTNAME, LISTEN_PORT);
+            masterHost = new Host(masterSocket);
+            masterMessenger = new SocketMessenger(masterSocket);
+        } catch (UnknownHostException e) {
+            System.err.println("Error when slave trying to connect to master: " + e);
         } catch (IOException e) {
-            System.err.println("Slave unable to listen on port: " + LISTEN_PORT + ": " + e);
-            System.exit(1);
+            System.err.println("Error when slave trying to connect to master: " + e);
         }
 
-        try {
-            masterSocket = listenSocket.accept();
-            masterMessenger = new SocketMessenger(masterSocket);
-            new Thread(new DistributedFileSystemNodeThread(masterMessenger, Chunk.CHUNK_PATH)).start();
-        } catch (IOException e) {
-            System.err.println("Slave error when accepting socket connection: " + e);
-        }
+        //start dfs
+        new Thread(new DistributedFileSystemNodeThread(masterMessenger, Chunk.CHUNK_PATH)).start();
 
         while (true) {
             try {
@@ -93,6 +90,9 @@ public class Slave {
                     String fullNewPath = newDir + fim.getFileName();
                     System.out.println("full new path: " + fullNewPath);
                     System.out.println("rename: " + receivedFile.renameTo(new File(fullNewPath)));
+                } else if (message instanceof HeartBeatMessage) {
+                    System.out.println("Slave received heartbeat");
+                    masterMessenger.sendMessage(new HeartBeatMessage());
                 }
                 else {
                     System.err.println("Slave received illegal message: " + message);
@@ -107,7 +107,7 @@ public class Slave {
 
     public static void main(String[] args) {
         Slave slave = new Slave();
-        slave.listen();
+        slave.mainLoop();
     }
 
 }

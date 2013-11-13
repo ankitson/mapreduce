@@ -13,18 +13,21 @@ import java.net.Socket;
 
 public class SocketMessenger {
 
-    private Socket socket;
+    public Socket socket;
     public ObjectOutputStream objectOutputStream;
     private ObjectInputStream objectInputStream = null;
 
     private static final int BUFFER_SIZE = 8192;
-    private static final int SOCKET_TIMEOUT = 3000;
 
     public SocketMessenger(Socket socket) throws IOException {
-        System.out.println("new messenger initialized");
         this.socket = socket;
-        //socket.setSoTimeout(SOCKET_TIMEOUT); //TESTING PURPOSES
-        objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+        objectOutputStream = new ObjectOutputStream(this.socket.getOutputStream());
+    }
+
+    public SocketMessenger(Socket socket, int timeout) throws IOException {
+        this.socket = socket;
+        this.socket.setSoTimeout(timeout);
+        objectOutputStream = new ObjectOutputStream(this.socket.getOutputStream());
     }
 
     public synchronized void sendMessage(Message message) throws IOException {

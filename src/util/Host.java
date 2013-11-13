@@ -20,13 +20,19 @@ public class Host implements Serializable {
     public final String HOSTNAME;
     public final int PORT;
     public final String CHUNKS_DIRECTORY = "/tmp/distributed-chunks/";
-    public final String REMOTE_CHUNKS_DIR_PATH;
+    public String REMOTE_CHUNKS_DIR_PATH;
     private transient Socket socket = null;
 
     public Host(String hostName, int port) {
         HOSTNAME = hostName;
         PORT = port;
         REMOTE_CHUNKS_DIR_PATH = "//" + HOSTNAME + CHUNKS_DIRECTORY;
+    }
+
+    public Host(Socket socket) {
+        this.socket = socket;
+        HOSTNAME = socket.getInetAddress().getHostName();
+        PORT = socket.getPort();
     }
 
     public Socket getSocket() throws IOException {
