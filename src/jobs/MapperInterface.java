@@ -1,7 +1,5 @@
 package jobs;
 
-import util.Pair;
-
 import java.io.Serializable;
 
 /**
@@ -12,11 +10,33 @@ import java.io.Serializable;
  * To change this template use File | Settings | File Templates.
  */
 
-//public abstract class MapperInterface<K extends Serializable,V extends Serializable> implements Serializable {
-public abstract class MapperInterface implements Serializable { //TESTING
+//public abstract class MapperInterface<K extends Serializable & Comparable<K>,V extends Serializable> implements Serializable {
 
-    //set to null if no combine step
-    public CombinerInterface combiner;
-    public abstract Pair map(String record, int recordNo);
+//public abstract class MapperInterface implements Serializable { //TESTING
+/*public interface MapperInterface<K extends Serializable & Comparable<K>,V extends Serializable> extends Serializable {
+
+    public Pair<K,V> map(String record, int recordNo);
+    public CombinerInterface<K,V> getCombiner();
+
+    public Pair<K,V> KVFromRecord(String record);
+    public String KVToString(Pair<K,V> kvPair);
+
+}*/
+
+
+public interface MapperInterface<
+        IK extends Serializable & Comparable<IK>,
+        IV extends Serializable & Comparable<IV>,
+        OK extends Serializable & Comparable<OK>,
+        OV extends Serializable & Comparable<OV>> extends Serializable {
+
+    //map input key and val to output key and val
+    public void map(IK inputKey, IV inputValue, KVContainer<OK,OV> collector);
+
+    //map record and record no to input key and val
+    public KVContainer<IK,IV> parseRecord(String record, int recordNo);
+
+    //map out key and record to writable string
+    public String KVtoString(KVContainer<OK,OV> outputKV);
 
 }

@@ -8,16 +8,17 @@ package master;
  * To change this template use File | Settings | File Templates.
  */
 
+import dfs.Chunk;
+import dfs.DistributedFile;
 import jobs.Job;
-import messages.HeartBeatMessage;
-import messages.JobMessage;
-import messages.Message;
-import messages.SocketMessenger;
+import messages.*;
 import util.Host;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +33,19 @@ public class SlaveListenerThread implements Runnable {
     private SocketMessenger slaveMessenger;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
     private List<Job> runningJobs;
+    private List<Chunk> mapOutputChunks;
+    private Map<File, DistributedFile> filesToDistributedFiles;
     private final int MAX_JOB_TRIES = 3; //read from config
 
     public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler,
-                               ConcurrentHashMap <Host, SocketMessenger> messengers, List<Job> runningJobs) {
+                               ConcurrentHashMap <Host, SocketMessenger> messengers, List<Job> runningJobs,
+                               List<Chunk> mapOutputChunks, Map<File, DistributedFile> filesToDistributedFiles) {
         this.slaveMessenger = slaveMessenger;
         this.jobScheduler = jobScheduler;
         this.messengers = messengers;
         this.runningJobs = runningJobs;
+        this.mapOutputChunks = mapOutputChunks;
+        this.filesToDistributedFiles = filesToDistributedFiles;
     }
 
     public void run() {
@@ -48,9 +54,28 @@ public class SlaveListenerThread implements Runnable {
             try {
                 message = slaveMessenger.receiveMessage();
                 if (message instanceof JobMessage) {
-                    Job job = ((JobMessage) message).job;
+                    JobMessage jm = ((JobMessage) message);
+                    Job job = jm.job;
                     if (job.success == true) {
                         System.out.println(job + " completed successfully");
+                        switch (job.jobType) {
+                            case MAP:
+                                String mapOutFileName = jm.fileName;
+                                HashSet<Host> hosts = new HashSet<Host>();
+                                hosts.add(job.host);
+                                Chunk mapOutChunk = new Chunk(mapOutFileName, 0, hosts, null);
+                                mapOutputChunks.add(mapOutChunk);
+                                break;
+                            case REDUCE:
+                                FileInfoMessage fim = ((FileInfoMessage) slaveMessenger.receiveMessage());
+                                File reduceOutFile = new File(fim.getFileName());
+                                slaveMessenger.receiveFile(reduceOutFile,(int) fim.getFileSize());
+                                filesToDistributedFiles.put(reduceOutFile, new DistributedFile(reduceOutFile, messengers));
+                                //MAKE NEW REDUCE JOB ON THIS REDUCED CHUNK  + OTHER CHUNKS
+                                break;
+                            case DUMMY:
+                                break;
+                        }
                         //add to user specific data structures here
                         //tell user where result of map/reduce is?
                         runningJobs.remove(job);

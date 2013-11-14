@@ -21,7 +21,7 @@ import java.io.Serializable;
  *
  * We need unused K for reducer jobs too
  */
-public class Job<K extends Serializable,V extends Serializable> implements Serializable {
+public class Job<K extends Serializable & Comparable<K>,V extends Serializable> implements Serializable {
 
     //for general jobs
     public int internalJobID;
@@ -32,13 +32,14 @@ public class Job<K extends Serializable,V extends Serializable> implements Seria
 
     //map jobs
     public Chunk chunk;
-    //public MapperInterface<K,V> mapperInterface; TESTING
-    public MapperInterface mapperInterface;
+    public MapperInterface<K,V> mapperInterface; //TESTING
+    //public MapperInterface mapperInterface;
     public Pair<Integer, Integer> recordRange;
 
     //reduce jobs
-    public ReducerInterface<V> reducerInterface;
-    public Pair<Host, Host> reduceHosts;
+    public ReducerInterface<K,V> reducerInterface;
+    public Chunk chunk1;
+    public Chunk chunk2;
 
     public Job(int jobID, Host host, JobType jobType) {
         this.internalJobID = jobID;
@@ -51,7 +52,8 @@ public class Job<K extends Serializable,V extends Serializable> implements Seria
         chunk = null;
         mapperInterface = null;
         reducerInterface = null;
-        reduceHosts = null;
+        chunk1 = null;
+        chunk2 = null;
     }
 
     //shortcut for common case
@@ -71,10 +73,11 @@ public class Job<K extends Serializable,V extends Serializable> implements Seria
     }
 
     //shortcut for reduce jobs
-    public Job(int jobID, Host host, ReducerInterface<V> reducerInterface, Pair<Host, Host> reduceHosts) {
+    public Job(int jobID, Host host, ReducerInterface<K,V> reducerInterface, Chunk chunk1, Chunk chunk2) {
         this(jobID, host, JobType.REDUCE);
         this.reducerInterface = reducerInterface;
-        this.reduceHosts = reduceHosts;
+        this.chunk1 = chunk1;
+        this.chunk2 = chunk2;
     }
 
     public String toString() {

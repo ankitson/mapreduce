@@ -1,15 +1,18 @@
 package slave;
 
 import dfs.Chunk;
+import jobs.CombinerInterface;
 import jobs.Job;
 import jobs.MapperInterface;
-import messages.*;
+import messages.JobMessage;
+import messages.SocketMessenger;
 import util.FileUtils;
-import util.Host;
 import util.Pair;
 
 import java.io.*;
-import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -21,15 +24,16 @@ import java.net.Socket;
 
 //TODO:
 //take care of record range & combiner
-public class MapJobServicerThread implements Runnable {
+public class MapJobServicerThread extends JobThread {
 
-    private static String OUTPUT_FORMAT_STRING = "%s:%s\n";
+    public static String OUTPUT_FORMAT_STRING = "%s:%s\n";
 
     Job mapJob;
     SocketMessenger masterMessenger;
     Chunk chunk;
     MapperInterface mapper;
     String hostName;
+    CombinerInterface combiner;
 
     public MapJobServicerThread(Job mapJob, SocketMessenger masterMessenger, String hostName) {
         this.mapJob = mapJob;
@@ -37,6 +41,8 @@ public class MapJobServicerThread implements Runnable {
         this.hostName = hostName;
         chunk = mapJob.chunk;
         mapper = mapJob.mapperInterface;
+        combiner = mapJob.mapperInterface.getCombiner();
+        System.out.println("combiner in map job svc thread: " + combiner);
     }
 
     public void run() {
@@ -44,39 +50,16 @@ public class MapJobServicerThread implements Runnable {
 
         File mapInputFile = null;
         try {
-            File chunkPathFile = new File(chunk.getPathOnHost(hostName));
+
+            mapInputFile = getFileFromChunk(chunk, hostName);
+
+            /*File chunkPathFile = new File(chunk.getPathOnHost(hostName));
             System.out.println("local chunk path: " + chunkPathFile.getCanonicalPath());
             mapInputFile = chunkPathFile;
-            if (!chunkPathFile.exists()) { //the chunk is on a different slave
-                System.out.println("chunk does NOT exist locally ");
-                for (Host host : chunk.getHosts()) {
-                    try {
-                        System.out.println("requesting " + host + " for chunk");
-                        Socket socket = new Socket(host.HOSTNAME, 5358);
-                        SocketMessenger hostMessenger = new SocketMessenger(socket);
-                        hostMessenger.sendMessage(new ChunkMessage(chunk, host.HOSTNAME));
-                        Message message = hostMessenger.receiveMessage();
-                        if (message instanceof FileInfoMessage) {
-                            FileInfoMessage fim = ((FileInfoMessage) message);
-                            File receivedFile = new File(Chunk.CHUNK_PATH + fim.getFileName());
-                            hostMessenger.receiveFile(receivedFile, (int) fim.getFileSize());
-                            mapInputFile = receivedFile;
-                        } else if (message instanceof FileNotFoundMessage) {
-                            continue;
-                        } else {
-                            System.err.println("Unknown message received in map servicer");
-                            failJob();
-                        }
-                        socket.close();
-                    } catch (IOException e) {
-                        System.err.println("IO Exception in map servicer: " + e);
-                        failJob();
-                    } catch (ClassNotFoundException e) {
-                        System.err.println("Class not found in map servicer: " + e);
-                        failJob();
-                    }
-                }
-            }
+
+            if (!chunkPathFile.exists()) //the chunk is on a different slave
+                mapInputFile = getFileFromChunk(chunk);*/
+
             if (mapInputFile == null) {
                 System.err.println("Unable to find required chunk on any slave");
                 failJob();
@@ -85,20 +68,51 @@ public class MapJobServicerThread implements Runnable {
             System.out.println("input file contents: " + FileUtils.print(mapInputFile));
 
             //output of map is stored in chunk dir
-            File mapOutputFile = new File(Chunk.CHUNK_PATH + getOutputFileName());
+            File mapOutputFile = new File(Chunk.getPathPrefixOnHost(hostName) + getOutputFileName());
             FileUtils.createFile(mapOutputFile);
             System.out.println("created output file: " + mapOutputFile.getCanonicalPath());
             BufferedWriter outputWriter = new BufferedWriter(new FileWriter(mapOutputFile));
 
             String line;
             int recordNo = chunk.getRecordRange().getFirst();
+
+            //List<Pair<? extends Comparable<?>, String>> outputPairs = new ArrayList<Pair<? extends Comparable<?>, String>>();
+
+            List<Pair<String, String>> outputPairs = new ArrayList<Pair<String, String>>();
             try {
                 while ((line = br.readLine()) != null) {
                     System.out.println("read " + line);
                     Pair output = mapper.map(line,recordNo);
-                    outputWriter.write(String.format(OUTPUT_FORMAT_STRING, output.getFirst(), output.getSecond()));
-                    System.out.println("writing: " + output);
+                    outputPairs.add(new Pair(output.getFirst(), output.getSecond()));
                     recordNo++;
+                }
+                Collections.sort(outputPairs);
+
+                Pair<String,String> lastPair = outputPairs.get(0);
+                Pair combinedValue = null;
+
+                if (combiner != null) {
+                    System.out.println("comber not null");
+                    for (Pair<String, String> outputPair : outputPairs.subList(1,outputPairs.size()) ) {
+                        System.out.println("iterating: " + outputPair);
+                        if (outputPair.getFirst().equals(lastPair.getFirst())) {
+                            combinedValue = combiner.combine(lastPair, outputPair);
+                            System.out.println("combining: " + outputPair + ", " + lastPair + " to " + combinedValue);
+                        } else {
+                            System.out.println("writing combined: " + combinedValue );
+                            outputWriter.write(String.format(OUTPUT_FORMAT_STRING, lastPair.getFirst(), combinedValue.getSecond()));
+                            combinedValue = null;
+                        }
+                        lastPair = outputPair;
+                    }
+                    if (combinedValue == null) {
+                        outputWriter.write(String.format(OUTPUT_FORMAT_STRING, lastPair.getFirst(), lastPair.getSecond()));
+                    }
+                } else {
+                    for (Pair pair : outputPairs) {
+                        System.out.println("no combiner werite loop");
+                        outputWriter.write(String.format(OUTPUT_FORMAT_STRING, pair.getFirst(), pair.getSecond()));
+                    }
                 }
             } catch (IOException e) {
                 System.err.println("Unable to write to map output file: " + e);
@@ -110,41 +124,6 @@ public class MapJobServicerThread implements Runnable {
             System.err.println("Thread unable to communicate");
             return;
         }
-
-        //send job message after everything
-
-        /*try {
-            Thread.sleep(10000);
-            System.out.println("requesting now");
-
-            Set<Host> chunkRequestHosts = new HashSet<Host>();
-            chunkRequestHosts.add(new Host("UNIX3.ANDREW.CMU.EDU", 5358));
-            chunkRequestHosts.add(new Host("UNIX4.ANDREW.CMU.EDU", 5358));
-            Chunk chunk = new Chunk("testfile2.txt", 2, chunkRequestHosts);
-
-            for (Host host : chunkRequestHosts) {
-                SocketMessenger messenger1 = new SocketMessenger(host.getSocket());
-                messenger1.sendMessage(new ChunkMessage(chunk, host.HOSTNAME));
-                System.out.println("requested chunk from: " + host);
-                try {
-                    Message received = messenger1.receiveMessage();
-                    if (received instanceof FileInfoMessage) {
-                        FileInfoMessage fim = ((FileInfoMessage) received);
-                        File receivedFile = new File(fim.getFileName());
-                        messenger1.receiveFile(receivedFile, (int) fim.getFileSize());
-                        System.out.println("received file: " + FileUtils.print(receivedFile));
-                    } else if (received instanceof FileNotFoundMessage) {
-                        System.err.println("chunk not found");
-                    }
-                } catch (ClassNotFoundException e) {
-                    System.err.println("illegal message in chunk test");
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("exception requesting chunk: " + e);
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }*/
     }
 
     public void failJob() throws IOException {

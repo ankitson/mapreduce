@@ -34,7 +34,7 @@ public class SlaveJoinThread implements Runnable {
             Socket slaveSocket;
             while (true) {
                 slaveSocket = listen.accept();
-                System.out.println("Slave connected: " + slaveSocket.getInetAddress().getHostName());
+                System.out.println("Slave connected: " + slaveSocket.getInetAddress().getHostName().toUpperCase());
                 Host slaveHost = new Host(slaveSocket);
                 SocketMessenger slaveMessenger = new SocketMessenger(slaveSocket, SLAVE_TIMEOUT);
                 messengers.put(slaveHost, slaveMessenger);

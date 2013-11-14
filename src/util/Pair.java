@@ -9,7 +9,8 @@ import java.io.Serializable;
  * Time: 1:27 AM
  * To change this template use File | Settings | File Templates.
  */
-public class Pair<A extends Serializable,B extends Serializable> implements Serializable {
+
+public class Pair<A extends Serializable & Comparable<A>, B extends Serializable> implements Serializable, Comparable<Pair<A,B>> {
 
     private A first;
     private B second;
@@ -28,5 +29,13 @@ public class Pair<A extends Serializable,B extends Serializable> implements Seri
 
     public B getSecond() {
         return second;
+    }
+
+    public int compareTo(Pair<A,B> pair) {
+        return first.compareTo(pair.getFirst());
+    }
+
+    public String toString() {
+        return "Pair: (" + first + "," + second + ")";
     }
 }

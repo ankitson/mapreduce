@@ -32,6 +32,8 @@ public class Master {
     private Map<File, DistributedFile> filesToDistributedFiles;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
 
+    private List<Chunk> mapOutputChunks;
+
     private JobScheduler jobQueue;
 
     List<Job> runningJobs;
@@ -54,6 +56,7 @@ public class Master {
         }
 
         runningJobs = Collections.synchronizedList(new ArrayList<Job>());
+        mapOutputChunks = Collections.synchronizedList(new ArrayList<Chunk>());
 
         //DFS assumes that slaves dont die
         System.out.println("messengers after init: " + messengers);
@@ -64,9 +67,16 @@ public class Master {
 
         new Thread(new HealthCheckerThread(messengers)).start();
 
-        Chunk file1Chunk2 = filesToDistributedFiles.get(new File("./testfile1.txt")).getChunks().get(1);
+        Chunk wordCountChunk = filesToDistributedFiles.get(new File("./wordcounttest.txt")).getChunks().get(0);
+        Chunk floatChunk1 = filesToDistributedFiles.get(new File("./floatyolotest.txt")).getChunks().get(0);
+
+        Chunk reducewc1 = filesToDistributedFiles.get(new File("./reducewc1.txt")).getChunks().get(0);
+        Chunk reducewc2 = filesToDistributedFiles.get(new File("./reducewc1.txt")).getChunks().get(0);
+
+
+
         //chunk arg ONLY FOR TESTING
-        jobQueue = new JobScheduler(file1Chunk2);
+        jobQueue = new JobScheduler(reducewc1,reducewc2);
         System.out.println("messengers after jobschdule: " + messengers);
 
 
@@ -74,7 +84,8 @@ public class Master {
 
         new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start(); //fill in args to thread
         for (SocketMessenger slaveMessenger : messengers.values()) {
-            new Thread(new SlaveListenerThread(slaveMessenger, jobQueue, messengers, runningJobs)).start();
+            new Thread(new SlaveListenerThread(slaveMessenger, jobQueue,
+                    messengers, runningJobs, mapOutputChunks, filesToDistributedFiles)).start();
             //fill in other args to thread ?
         }
     }
@@ -123,6 +134,11 @@ public class Master {
         files.add(new File("./testfile2.txt"));
         files.add(new File("./testfile3.txt"));
         files.add(new File("./testfile4.txt"));
+        files.add(new File("./testfile5.txt"));
+        files.add(new File("./wordcounttest.txt"));
+        files.add(new File("./floatyolotest.txt"));
+        files.add(new File("./reducewc1.txt"));
+        files.add(new File("./reducewc2.txt"));
         System.out.println("files to chunk: " + files);
         slaves.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
         slaves.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));

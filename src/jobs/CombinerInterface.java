@@ -1,8 +1,8 @@
 package jobs;
 
-import java.io.File;
+import util.Pair;
+
 import java.io.Serializable;
-import java.util.ArrayList;
 
 /**
  * Created with IntelliJ IDEA.
@@ -12,8 +12,12 @@ import java.util.ArrayList;
  * To change this template use File | Settings | File Templates.
  */
 //public interface CombinerInterface<V extends Serializable> extends Serializable { TESTING
-public interface CombinerInterface extends Serializable {
 
-    //public File combine(List<Pair<String, V>> keyValueList);
-    public File combine(ArrayList keyValueList);
+
+//public interface CombinerInterface extends Serializable {
+
+public interface CombinerInterface<K extends Serializable & Comparable<K>,
+        V extends Serializable> extends Serializable {
+
+    public Pair<K,V> combine(Pair val1, Pair val2);
 }

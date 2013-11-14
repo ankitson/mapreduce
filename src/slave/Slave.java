@@ -66,7 +66,7 @@ public class Slave {
                             new Thread(new MapJobServicerThread(job, masterMessenger, job.host.HOSTNAME)).start();
                             break;
                         case REDUCE:
-                            new Thread(new ReduceJobServicerThread()).start();
+                            new Thread(new ReduceJobServicerThread(job, masterMessenger, job.host.HOSTNAME)).start();
                             break;
                         case DUMMY:
                             System.err.println("Slave received dummy job! Ignoring.");
@@ -91,6 +91,9 @@ public class Slave {
                 } else if (message instanceof HeartBeatMessage) {
                     System.out.println("Slave received heartbeat");
                     masterMessenger.sendMessage(new HeartBeatMessage());
+                } else if (message instanceof HostNameMessage) {
+                    hostName = ((HostNameMessage) message).getHostName();
+                    System.out.println("Slave received own hostname from server POV: " + hostName);
                 } else {
                     System.err.println("Slave received illegal message: " + message);
                 }

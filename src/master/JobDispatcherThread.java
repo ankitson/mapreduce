@@ -62,6 +62,8 @@ public class JobDispatcherThread implements Runnable {
             try {
                 slaveToDispatchTo.sendMessage(new JobMessage(dispatchJob));
                 System.out.println("master sent job message: " + dispatchJob);
+                System.out.println("mapper: " + dispatchJob.mapperInterface);
+                System.out.println("mapper - combiner: " + dispatchJob.mapperInterface.getCombiner());
                 runningJobs.add(dispatchJob);
             } catch (IOException e) {
                 continue;

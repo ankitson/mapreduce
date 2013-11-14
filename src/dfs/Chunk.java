@@ -42,8 +42,12 @@ public class Chunk implements Serializable {
     }
 
     public String getPathOnHost(String hostName) {
+        return getPathPrefixOnHost(hostName) + fileName + "-" + chunkNo;
+    }
+
+    public static String getPathPrefixOnHost(String hostName) {
         String chunkDir = CHUNK_PATH.substring(0, CHUNK_PATH.length() -1);
-        return chunkDir + "-" + hostName.toUpperCase() + "/" + fileName + "-" + chunkNo;
+        return chunkDir + "-" + hostName.toUpperCase() + "/";
     }
 
     public String getLocalChunkPath() {

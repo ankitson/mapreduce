@@ -12,13 +12,16 @@ import util.Pair;
  * To change this template use File | Settings | File Templates.
  */
 
-public class SampleMapper extends MapperInterface {
+public class SampleMapper implements MapperInterface {
 
     static final long serialVersionUID = 42L;
 
-    CombinerInterface combiner= null;
     public Pair map(String record, int recordNo) {
         Integer theNum = Integer.parseInt(record);
         return new Pair(theNum, theNum * recordNo);
+    }
+
+    public CombinerInterface getCombiner() {
+        return null;
     }
 }
