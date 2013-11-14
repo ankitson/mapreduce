@@ -1,6 +1,7 @@
 package master;
 
 import dfs.Chunk;
+import example.WordCountCombiner;
 import example.WordCountMapper;
 import jobs.Job;
 import jobs.JobType;
@@ -49,7 +50,7 @@ public class JobScheduler {
 
         Job mapJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), JobType.MAP);
         mapJob.chunk = chunk1;
-        mapJob.mapperInterface = new WordCountMapper(null);
+        mapJob.mapperInterface = new WordCountMapper(new WordCountCombiner());
         mapJob.recordRange = new Pair<Integer,Integer>(1,20);
         jobQueue.add(mapJob);
 

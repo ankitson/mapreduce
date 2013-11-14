@@ -26,9 +26,9 @@ import java.io.Serializable;
 
 public interface MapperInterface<
         IK extends Serializable & Comparable<IK>,
-        IV extends Serializable & Comparable<IV>,
+        IV extends Serializable,
         OK extends Serializable & Comparable<OK>,
-        OV extends Serializable & Comparable<OV>> extends Serializable {
+        OV extends Serializable> extends Serializable {
 
     //map input key and val to output key and val
     public void map(IK inputKey, IV inputValue, KVContainer<OK,OV> collector);
@@ -38,6 +38,8 @@ public interface MapperInterface<
 
     //map out key and record to writable string
     public String KVtoString(KVContainer<OK,OV> outputKV);
+
+    public ReducerInterface<OK,OV,OK,OV> getCombiner();
 
 
 

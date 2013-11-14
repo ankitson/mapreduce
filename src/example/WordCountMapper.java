@@ -1,8 +1,8 @@
 package example;
 
-import jobs.CombinerInterface;
 import jobs.KVContainer;
 import jobs.MapperInterface;
+import jobs.ReducerInterface;
 
 /**
  * Created with IntelliJ IDEA.
@@ -40,11 +40,10 @@ import jobs.MapperInterface;
 
 public class WordCountMapper implements MapperInterface<String,Integer,String,Integer> {
 
-    public CombinerInterface combiner;
+    public ReducerInterface<String,Integer,String,Integer> combiner;
 
-    //TESTING IGNORE COMBINER FOR NOW
-    public WordCountMapper(CombinerInterface combiner) {
-        combiner = null;
+    public WordCountMapper(ReducerInterface<String,Integer,String,Integer> combiner) {
+        this.combiner = combiner;
     }
 
     public void map(String inKey, Integer inValue, KVContainer<String,Integer> collector) {
@@ -57,6 +56,10 @@ public class WordCountMapper implements MapperInterface<String,Integer,String,In
 
     public String KVtoString(KVContainer<String,Integer> outKV) {
         return outKV.getKey() + ":" + outKV.getValue();
+    }
+
+    public ReducerInterface<String,Integer,String,Integer> getCombiner() {
+        return combiner;
     }
 
 }

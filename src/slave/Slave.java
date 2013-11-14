@@ -66,7 +66,8 @@ public class Slave {
                             new Thread(new MapJobServicerThread(job, masterMessenger, job.host.HOSTNAME)).start();
                             break;
                         case REDUCE:
-                            new Thread(new ReduceJobServicerThread(job, masterMessenger, job.host.HOSTNAME)).start();
+                            //ONLY TESTING
+                            //new Thread(new ReduceJobServicerThread(job, masterMessenger, job.host.HOSTNAME)).start();
                             break;
                         case DUMMY:
                             System.err.println("Slave received dummy job! Ignoring.");

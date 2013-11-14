@@ -1,18 +1,5 @@
 package slave;
 
-import dfs.Chunk;
-import jobs.Job;
-import jobs.ReducerInterface;
-import messages.FileInfoMessage;
-import messages.JobMessage;
-import messages.SocketMessenger;
-import util.FileUtils;
-import util.Pair;
-
-import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Created with IntelliJ IDEA.
  * User: ankit
@@ -20,7 +7,7 @@ import java.util.Map;
  * Time: 4:06 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ReduceJobServicerThread extends JobThread {
+/*public class ReduceJobServicerThread extends JobThread {
 
     public String REDUCE_OUT_FORMAT_STRING = "%s:%s\n";
     Job reduceJob;
@@ -122,4 +109,4 @@ public class ReduceJobServicerThread extends JobThread {
         return String.format("map.%d.%s-%s.%s-%s", reduceJob.internalJobID, chunk1.getFileName(), chunk1.getChunkNo()
                                                  , chunk2.getFileName(), chunk2.getChunkNo());
     }
-}
+}*/

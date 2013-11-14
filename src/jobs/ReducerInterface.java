@@ -1,7 +1,5 @@
 package jobs;
 
-import util.Pair;
-
 import java.io.Serializable;
 
 /**
@@ -11,8 +9,17 @@ import java.io.Serializable;
  * Time: 12:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public interface ReducerInterface<K extends Serializable & Comparable<K>,
-        V extends Serializable> extends Serializable {
+public interface ReducerInterface
+        <IK extends Serializable & Comparable<IK>,
+         IV extends Serializable,
+         OK extends Serializable & Comparable<OK>,
+         OV extends Serializable> extends Serializable {
 
-    public Pair<K,V> reduce(Pair val1, Pair val2);
+    public void reduce(IK key1, IK key2, IV val1, IV val2, KVContainer<OK,OV> reducedKV);
+
+    //map record and record no to input key and val
+    public KVContainer<IK,IV> parseRecord(String record, int recordNo);
+
+    //map out key and record to writable string
+    public String KVtoString(KVContainer<OK,OV> outputKV);
 }

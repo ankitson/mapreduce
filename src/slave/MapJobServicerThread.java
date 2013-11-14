@@ -1,10 +1,10 @@
 package slave;
 
 import dfs.Chunk;
-import jobs.CombinerInterface;
 import jobs.Job;
 import jobs.KVContainer;
 import jobs.MapperInterface;
+import jobs.ReducerInterface;
 import messages.JobMessage;
 import messages.SocketMessenger;
 import util.FileUtils;
@@ -33,7 +33,7 @@ public class MapJobServicerThread extends JobThread {
     Chunk chunk;
     MapperInterface mapper;
     String hostName;
-    CombinerInterface combiner;
+    ReducerInterface combiner;
 
     public MapJobServicerThread(Job mapJob, SocketMessenger masterMessenger, String hostName) {
         this.mapJob = mapJob;
@@ -41,10 +41,7 @@ public class MapJobServicerThread extends JobThread {
         this.hostName = hostName;
         chunk = mapJob.chunk;
         mapper = mapJob.mapperInterface;
-
-        //ONLY FOR TESTING
-        combiner = null;
-        //combiner = mapJob.mapperInterface.getCombiner();
+        combiner = mapper.getCombiner();
         System.out.println("combiner in map job svc thread: " + combiner);
     }
 
@@ -91,6 +88,7 @@ public class MapJobServicerThread extends JobThread {
                         recordNo++;
                     }
                     Collections.sort(outputKVs);
+                    outputKVs = applyCombiner(outputKVs);
                     for (KVContainer outputKV : outputKVs) {
                         outputWriter.write(mapper.KVtoString(outputKV)+"\n");
                     }
@@ -170,6 +168,26 @@ public class MapJobServicerThread extends JobThread {
 
     public String getOutputFileName() {
         return String.format("map.%d.%s-%s", mapJob.internalJobID, chunk.getFileName(), chunk.getChunkNo());
+    }
+
+    public List<KVContainer> applyCombiner(List<KVContainer> sortedOutputKVs) {
+        if (combiner == null || sortedOutputKVs.size() == 0)
+            return sortedOutputKVs;
+
+        List<KVContainer> combinedKVs = new ArrayList<KVContainer>();
+
+        KVContainer toAddKV = sortedOutputKVs.get(0);
+        for (KVContainer kvContainer : sortedOutputKVs.subList(1,sortedOutputKVs.size())) {
+            if (toAddKV.equals(kvContainer)) {
+                combiner.reduce(toAddKV.getKey(), kvContainer.getKey(), toAddKV.getValue(), kvContainer.getValue(), toAddKV);
+            } else {
+                combinedKVs.add(toAddKV);
+                toAddKV = kvContainer;
+            }
+        }
+        combinedKVs.add(toAddKV);
+
+        return combinedKVs;
     }
 
 }

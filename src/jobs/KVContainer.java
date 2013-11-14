@@ -39,4 +39,8 @@ public class KVContainer<
     public int compareTo(KVContainer<K,V> other) {
         return key.compareTo(other.getKey());
     }
+
+    public boolean equals(KVContainer<K,V> other) {
+        return this.compareTo(other) == 0;
+    }
 }

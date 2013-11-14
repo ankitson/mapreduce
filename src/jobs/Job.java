@@ -37,7 +37,7 @@ public class Job<K extends Serializable & Comparable<K>,V extends Serializable> 
     public Pair<Integer, Integer> recordRange;
 
     //reduce jobs
-    public ReducerInterface<K,V> reducerInterface;
+    public ReducerInterface reducerInterface;
     public Chunk chunk1;
     public Chunk chunk2;
 
@@ -73,7 +73,7 @@ public class Job<K extends Serializable & Comparable<K>,V extends Serializable> 
     }
 
     //shortcut for reduce jobs
-    public Job(int jobID, Host host, ReducerInterface<K,V> reducerInterface, Chunk chunk1, Chunk chunk2) {
+    public Job(int jobID, Host host, ReducerInterface reducerInterface, Chunk chunk1, Chunk chunk2) {
         this(jobID, host, JobType.REDUCE);
         this.reducerInterface = reducerInterface;
         this.chunk1 = chunk1;
