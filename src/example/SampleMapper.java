@@ -1,9 +1,5 @@
 package example;
 
-import jobs.CombinerInterface;
-import jobs.MapperInterface;
-import util.Pair;
-
 /**
  * Created with IntelliJ IDEA.
  * User: ankit
@@ -12,7 +8,7 @@ import util.Pair;
  * To change this template use File | Settings | File Templates.
  */
 
-public class SampleMapper implements MapperInterface {
+/*public class SampleMapper implements MapperInterface {
 
     static final long serialVersionUID = 42L;
 
@@ -24,4 +20,4 @@ public class SampleMapper implements MapperInterface {
     public CombinerInterface getCombiner() {
         return null;
     }
-}
+}*/

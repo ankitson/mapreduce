@@ -1,10 +1,11 @@
 package master;
 
 import dfs.Chunk;
-import example.WordCountReducer;
+import example.WordCountMapper;
 import jobs.Job;
-import jobs.ReducerInterface;
+import jobs.JobType;
 import util.Host;
+import util.Pair;
 
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -42,10 +43,15 @@ public class JobScheduler {
         //jobQueue.add(dummyJob);
         jobQueue.add(mapJob);*/
 
-        ReducerInterface reducer = new WordCountReducer();
+        //ReducerInterface reducer = new WordCountReducer();
+        //Job reduceJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), reducer, chunk1, chunk2);
+        //jobQueue.add(reduceJob);
 
-        Job reduceJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), reducer, chunk1, chunk2);
-        jobQueue.add(reduceJob);
+        Job mapJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), JobType.MAP);
+        mapJob.chunk = chunk1;
+        mapJob.mapperInterface = new WordCountMapper(null);
+        mapJob.recordRange = new Pair<Integer,Integer>(1,20);
+        jobQueue.add(mapJob);
 
         ready = true;
     }

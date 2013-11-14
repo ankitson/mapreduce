@@ -39,4 +39,6 @@ public interface MapperInterface<
     //map out key and record to writable string
     public String KVtoString(KVContainer<OK,OV> outputKV);
 
+
+
 }

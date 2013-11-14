@@ -1,9 +1,5 @@
 package jobs;
 
-import util.Pair;
-
-import java.io.Serializable;
-
 /**
  * Created with IntelliJ IDEA.
  * User: ankit
@@ -16,8 +12,10 @@ import java.io.Serializable;
 
 //public interface CombinerInterface extends Serializable {
 
-public interface CombinerInterface<K extends Serializable & Comparable<K>,
+/*public interface CombinerInterface<K extends Serializable & Comparable<K>,
         V extends Serializable> extends Serializable {
 
     public Pair<K,V> combine(Pair val1, Pair val2);
-}
+}*/
+
+public interface CombinerInterface

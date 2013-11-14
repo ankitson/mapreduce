@@ -76,7 +76,7 @@ public class Master {
 
 
         //chunk arg ONLY FOR TESTING
-        jobQueue = new JobScheduler(reducewc1,reducewc2);
+        jobQueue = new JobScheduler(wordCountChunk,reducewc2);
         System.out.println("messengers after jobschdule: " + messengers);
 
 

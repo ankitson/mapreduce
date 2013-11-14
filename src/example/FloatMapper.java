@@ -1,9 +1,5 @@
 package example;
 
-import jobs.CombinerInterface;
-import jobs.MapperInterface;
-import util.Pair;
-
 /**
  * Created with IntelliJ IDEA.
  * User: ankit
@@ -11,7 +7,7 @@ import util.Pair;
  * Time: 11:57 PM
  * To change this template use File | Settings | File Templates.
  */
-public class FloatMapper implements MapperInterface {
+/*public class FloatMapper implements MapperInterface {
     public CombinerInterface combiner;
 
     public FloatMapper(CombinerInterface combiner) {
@@ -26,4 +22,4 @@ public class FloatMapper implements MapperInterface {
     public CombinerInterface getCombiner() {
         return combiner;
     }
-}
+}*/

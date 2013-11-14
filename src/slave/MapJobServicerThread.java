@@ -3,11 +3,11 @@ package slave;
 import dfs.Chunk;
 import jobs.CombinerInterface;
 import jobs.Job;
+import jobs.KVContainer;
 import jobs.MapperInterface;
 import messages.JobMessage;
 import messages.SocketMessenger;
 import util.FileUtils;
-import util.Pair;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -41,7 +41,10 @@ public class MapJobServicerThread extends JobThread {
         this.hostName = hostName;
         chunk = mapJob.chunk;
         mapper = mapJob.mapperInterface;
-        combiner = mapJob.mapperInterface.getCombiner();
+
+        //ONLY FOR TESTING
+        combiner = null;
+        //combiner = mapJob.mapperInterface.getCombiner();
         System.out.println("combiner in map job svc thread: " + combiner);
     }
 
@@ -50,7 +53,6 @@ public class MapJobServicerThread extends JobThread {
 
         File mapInputFile = null;
         try {
-
             mapInputFile = getFileFromChunk(chunk, hostName);
 
             /*File chunkPathFile = new File(chunk.getPathOnHost(hostName));
@@ -76,9 +78,33 @@ public class MapJobServicerThread extends JobThread {
             String line;
             int recordNo = chunk.getRecordRange().getFirst();
 
-            //List<Pair<? extends Comparable<?>, String>> outputPairs = new ArrayList<Pair<? extends Comparable<?>, String>>();
-
-            List<Pair<String, String>> outputPairs = new ArrayList<Pair<String, String>>();
+            List<KVContainer> outputKVs = new ArrayList<KVContainer>();
+            try {
+                try {
+                    while ((line = br.readLine()) != null) {
+                        KVContainer inputKV = mapper.parseRecord(line, recordNo);
+                        KVContainer outputKV = new KVContainer();
+                        mapper.map(inputKV.getKey(), inputKV.getValue(), outputKV);
+                        outputKVs.add(outputKV);
+                        //String toWrite = mapper.KVtoString(outputKV);
+                        //outputWriter.write(toWrite+"\n");
+                        recordNo++;
+                    }
+                    Collections.sort(outputKVs);
+                    for (KVContainer outputKV : outputKVs) {
+                        outputWriter.write(mapper.KVtoString(outputKV)+"\n");
+                    }
+                    outputWriter.close();
+                } catch (IOException e) {
+                    System.err.println("Unable to write map output file: " + e);
+                    failJob();
+                    return;
+                }
+                successJob(getOutputFileName());
+            } catch (IOException e) {
+                System.err.println("Map service thread unable to communicate: " + e);
+            }
+            /*List<Pair<String, String>> outputPairs = new ArrayList<Pair<String, String>>();
             try {
                 while ((line = br.readLine()) != null) {
                     System.out.println("read " + line);
@@ -123,7 +149,11 @@ public class MapJobServicerThread extends JobThread {
         } catch (IOException e) {
             System.err.println("Thread unable to communicate");
             return;
+        }*/
+        } catch (IOException e) {
+            System.err.println(e);
         }
+        return;
     }
 
     public void failJob() throws IOException {

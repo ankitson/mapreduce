@@ -32,7 +32,7 @@ public class Job<K extends Serializable & Comparable<K>,V extends Serializable> 
 
     //map jobs
     public Chunk chunk;
-    public MapperInterface<K,V> mapperInterface; //TESTING
+    public MapperInterface mapperInterface; //TESTING
     //public MapperInterface mapperInterface;
     public Pair<Integer, Integer> recordRange;
 
