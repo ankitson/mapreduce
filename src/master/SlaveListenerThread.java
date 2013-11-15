@@ -16,16 +16,15 @@ import jobs.JobState;
 import messages.*;
 import util.FileUtils;
 import util.Host;
+import util.Pair;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Listens for messages from a slave and services their requests
@@ -36,20 +35,22 @@ public class SlaveListenerThread implements Runnable {
     private SocketMessenger slaveMessenger;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
     private Map<File, DistributedFile> filesToDistributedFiles;
-    private List<Job> completedMaps;
     private List<Job> chunkList;
+
+    private ConcurrentMap<Integer, Pair<Integer, Stack<Job>>> mrJobSuccesses;
 
     private final int MAX_JOB_TRIES = 3; //read from config
 
     public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler,
                                ConcurrentHashMap <Host, SocketMessenger> messengers,
-                               Map<File, DistributedFile> filesToDistributedFiles, List<Job> completedMaps, List<Job> chunkList) {
+                               Map<File, DistributedFile> filesToDistributedFiles, List<Job> chunkList,
+                               ConcurrentMap<Integer, Pair<Integer, Stack<Job>>> mrJobSuccesses) {
         this.slaveMessenger = slaveMessenger;
         this.jobScheduler = jobScheduler;
         this.messengers = messengers;
         this.filesToDistributedFiles = filesToDistributedFiles;
-        this.completedMaps = completedMaps;
         this.chunkList = chunkList;
+        this.mrJobSuccesses = mrJobSuccesses;
     }
 
     public void run() {
@@ -60,15 +61,15 @@ public class SlaveListenerThread implements Runnable {
                 if (message instanceof JobMessage) {
                     JobMessage jm = ((JobMessage) message);
                     Job job = jm.job;
-                    //updateJobStatus(job);
                     if (job.state == JobState.SUCCESS) {
+
                         System.out.println(job + " completed successfully");
                         switch (job.jobType) {
                             case MAP:
+                                successJob(job, null);
                                 String mapOutFileName = jm.fileName;
                                 HashSet<Host> hosts = new HashSet<Host>();
                                 hosts.add(job.host);
-                                completedMaps.add(job);
                                 Job nJob = new Job();
                                 nJob.chunk = job.jobResultChunk;
                                 nJob.reducerInterface = job.reducerInterface;
@@ -81,17 +82,16 @@ public class SlaveListenerThread implements Runnable {
                                 DistributedFile newDF = new DistributedFile(
                                         reduceOutFile, FileUtils.countLines(reduceOutFile)+1,messengers, DistributedFileSystemConstants.REPLICATION_FACTOR);
                                 filesToDistributedFiles.put(reduceOutFile, newDF);
+                                successJob(job, newDF);
 
 
                                 List<Chunk> chunks = filesToDistributedFiles.get(reduceOutFile).getChunks();
-                                completedMaps.add(job);
                                 for (Chunk chunk : chunks) {
                                     Job newJob = new Job();
                                     newJob.chunk = chunk;
                                     newJob.reducerInterface = job.reducerInterface;
                                     chunkList.add(newJob);
                                 }
-                                //MAKE NEW REDUCE JOB ON THIS REDUCED CHUNK  + OTHER CHUNKS
                                 break;
                             case DUMMY:
                                 break;
@@ -130,9 +130,6 @@ public class SlaveListenerThread implements Runnable {
                 }
                 return; //kill this thread
             } catch (IOException e) {
-                // we dont terminate the slave connection here - if it is a one off bad message , it will be ignored
-                // if the socket has been closed because the slave is dead, the thread will eventually die due to
-                // a timeout on the heartbeat
                 System.err.println("Error receiving message from slave (possibly timeout): " + e);
                 return;
             } catch (ClassNotFoundException e) {
@@ -141,6 +138,28 @@ public class SlaveListenerThread implements Runnable {
             }
         }
     }
+
+    /*public void updateStatus(Job job) {
+        List<Job> jobList = mrJobToJobs.get(job.mrJobID);
+        for (int i=0;i<jobList.size();i++) {
+            Job listJob = jobList.get(i);
+            if (listJob.equals(job))
+                jobList.set(i, job);
+        }
+        mrJobToJobs.put(job.mrJobID,jobList);
+    }
+
+    public boolean allSuccess(List<Job> jobs) {
+        if (jobs == null)
+            return false;
+
+        boolean success = true;
+        for (Job job : jobs) {
+            if (job.state != JobState.SUCCESS)
+                success = false;
+        }
+        return success;
+    }*/
 
     /*public void addSuccessfulMapJob(Job job) {
         if (job.state != JobState.SUCCESS || job.jobType != JobType.MAP)
@@ -159,4 +178,15 @@ public class SlaveListenerThread implements Runnable {
         }
 
     }*/
+
+    private void successJob(Job job, DistributedFile df) {
+        int mrJobID = job.mrJobID;
+        Pair<Integer, Stack<Job>> current = mrJobSuccesses.get(mrJobID);
+        if (current.getSecond().size() == current.getFirst() - 1) {
+            System.out.println("Map Reduce Job Successfully Completed: " + mrJobID);
+            System.out.println("Result file is at: " + df);
+        }
+        else
+            current.getSecond().push(job);
+    }
 }

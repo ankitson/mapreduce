@@ -7,11 +7,13 @@ import jobs.Job;
 import jobs.MapReduceJob;
 import messages.SocketMessenger;
 import util.Host;
+import util.Pair;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -36,6 +38,8 @@ public class Master {
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
     private List<Job> chunkList;
 
+    private ConcurrentMap<Integer, Pair<Integer, Stack<Job>>> mrJobSuccesses;
+
 
     private JobScheduler jobQueue;
 
@@ -52,6 +56,7 @@ public class Master {
         runningJobs = Collections.synchronizedList(new ArrayList<Job>());
         messengers = new ConcurrentHashMap<Host,SocketMessenger>();
         chunkList = Collections.synchronizedList(new ArrayList<Job>());
+        mrJobSuccesses = new ConcurrentHashMap<Integer, Pair<Integer, Stack<Job>>>();
 
 
 
@@ -72,7 +77,7 @@ public class Master {
         new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start();
         for (SocketMessenger slaveMessenger : messengers.values()) {
             new Thread(new SlaveListenerThread(slaveMessenger, jobQueue, messengers,
-                    filesToDistributedFiles, Collections.synchronizedList(new ArrayList <Job>()), chunkList)).start();
+                    filesToDistributedFiles, chunkList, mrJobSuccesses)).start();
         }
     }
 
@@ -137,6 +142,8 @@ public class Master {
             mapJobs.add(mapJob);
             internalJobID.incrementAndGet();
         }
+        int numTotalJobs = mapJobs.size() * 2 - 1;
+        mrJobSuccesses.put(mapReduceJobID, new Pair(numTotalJobs,new Stack<Job>()));
         boolean status = jobQueue.addJobs(mapJobs);
         return status;
     }
