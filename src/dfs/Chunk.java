@@ -67,8 +67,12 @@ public class Chunk implements Serializable {
     }
 
     public String toString() {
-        return String.format("[%s: #%d (lines %d-%d replicated on {%s}",fileName,chunkNo,
+
+        if (recordRange != null)
+            return String.format("[%s: #%d (lines %d-%d replicated on {%s}",fileName,chunkNo,
                 recordRange.getFirst(),recordRange.getSecond(),hosts);
+
+        return String.format("[%s: #%d (lines ? replicated on {%s}", fileName, chunkNo, hosts);
     }
 
     public static void main(String[] args) throws IOException {

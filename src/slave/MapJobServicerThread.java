@@ -1,18 +1,14 @@
 package slave;
 
 import dfs.Chunk;
-import jobs.Job;
-import jobs.KVContainer;
-import jobs.MapperInterface;
-import jobs.ReducerInterface;
+import jobs.*;
 import messages.JobMessage;
 import messages.SocketMessenger;
 import util.FileUtils;
+import util.Host;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -155,19 +151,22 @@ public class MapJobServicerThread extends JobThread {
     }
 
     public void failJob() throws IOException {
-        mapJob.success = false;
+        mapJob.state = JobState.FAIL;
         masterMessenger.sendMessage(new JobMessage(mapJob));
         return;
     }
 
     public void successJob(String outFileName) throws IOException {
-        mapJob.success = true;
+        mapJob.state = JobState.SUCCESS;
+        Set<Host> selfHost = new HashSet<Host>();
+        selfHost.add(new Host(hostName, FileServerThread.FS_LISTEN_PORT));
+        mapJob.jobResultChunk = new Chunk(outFileName, chunk.getChunkNo(), selfHost, null);
         masterMessenger.sendMessage(new JobMessage(mapJob, outFileName));
         return;
     }
 
     public String getOutputFileName() {
-        return String.format("map.%d.%s-%s", mapJob.internalJobID, chunk.getFileName(), chunk.getChunkNo());
+        return String.format("map.%d", mapJob.internalJobID);
     }
 
     public List<KVContainer> applyCombiner(List<KVContainer> sortedOutputKVs) {

@@ -17,7 +17,7 @@ import java.net.Socket;
  */
 public class FileServerThread implements Runnable {
 
-    private final int FS_LISTEN_PORT = 5358;
+    public static final int FS_LISTEN_PORT = 5358;
     private ServerSocket serverSocket;
 
     public FileServerThread() {

@@ -1,6 +1,7 @@
 package master;
 
 import jobs.Job;
+import jobs.JobState;
 import messages.JobMessage;
 import messages.SocketMessenger;
 import util.Host;
@@ -47,12 +48,17 @@ public class JobDispatcherThread implements Runnable {
     //should this busy-loop or have a timeout?
     public void run() {
         while (true) {
-            if (!jobQueue.ready())
-                continue;
-
-            System.out.println("job dispatcher - queue ready");
+            //if (!jobQueue.ready())
+            //    continue;
 
             Job dispatchJob = jobQueue.dequeueNextJob();
+
+
+            //testing junk
+            if (dispatchJob == null)
+                continue;
+
+            dispatchJob.state = JobState.DISPATCHED;
             dispatchJob.tries++;
             System.out.println("dispatchJob.host: " + dispatchJob.host);
             System.out.println("messengers in dispatcher: " + messengers);

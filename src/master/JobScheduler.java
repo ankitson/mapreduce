@@ -1,14 +1,13 @@
 package master;
 
 import dfs.Chunk;
-import example.WordCountCombiner;
-import example.WordCountMapper;
 import jobs.Job;
-import jobs.JobType;
+import jobs.JobState;
 import util.Host;
-import util.Pair;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /**
@@ -48,11 +47,15 @@ public class JobScheduler {
         //Job reduceJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), reducer, chunk1, chunk2);
         //jobQueue.add(reduceJob);
 
-        Job mapJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), JobType.MAP);
+        /*Job mapJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), JobType.MAP);
         mapJob.chunk = chunk1;
-        mapJob.mapperInterface = new WordCountMapper(new WordCountCombiner());
+        mapJob.mapperInterface = new WordCountMapper(new WordCountReducer());
         mapJob.recordRange = new Pair<Integer,Integer>(1,20);
-        jobQueue.add(mapJob);
+        jobQueue.add(mapJob);*/
+
+        //ReducerInterface<String,Integer,String,Integer> wcReducer = new WordCountReducer();
+        //Job reduceJob = new Job(10, 1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), wcReducer, chunk1, chunk2, null);
+        //jobQueue.add(reduceJob);
 
         ready = true;
     }
@@ -64,14 +67,30 @@ public class JobScheduler {
         return jobQueue.add(job);
     }
 
-    public Job dequeueNextJob() {
-        //ONLY FOR TESTING
+    public boolean addJobs(List<Job> jobs) {
         ready = false;
+        //FILL THIS IN
 
+        List<Host> hosts = new ArrayList<Host>();
+        hosts.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
+        hosts.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
+        hosts.add(new Host("UNIX4.ANDREW.CMU.EDU", 6666));
+        int i = 0;
+        for (Job job : jobs) {
+            job.host = hosts.get(i);
+            job.state = JobState.QUEUED;
+            i++;
+            if (i == 3)
+                i = 0;
+            jobQueue.add(job);
+        }
+        System.out.println("JOBS added to que");
+        ready = true;
+        return true;
+    }
+
+    public Job dequeueNextJob() {
         return jobQueue.poll();
-
-
-
     }
 
     //change addJob to addJobs(list), ready after whole batch added

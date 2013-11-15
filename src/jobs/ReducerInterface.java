@@ -18,7 +18,7 @@ public interface ReducerInterface
     public void reduce(IK key1, IK key2, IV val1, IV val2, KVContainer<OK,OV> reducedKV);
 
     //map record and record no to input key and val
-    public KVContainer<IK,IV> parseRecord(String record, int recordNo);
+    public KVContainer<IK,IV> parseRecord(String record);
 
     //map out key and record to writable string
     public String KVtoString(KVContainer<OK,OV> outputKV);

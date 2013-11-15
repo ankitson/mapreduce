@@ -3,6 +3,7 @@ package master;
 import dfs.Chunk;
 import dfs.DistributedFile;
 import jobs.Job;
+import jobs.MapReduceJob;
 import messages.SocketMessenger;
 import util.Host;
 
@@ -10,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Created with IntelliJ IDEA.
@@ -32,12 +34,16 @@ public class Master {
     private Map<File, DistributedFile> filesToDistributedFiles;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
 
-    private List<Chunk> mapOutputChunks;
+
+    private ConcurrentMap<Integer, List<Job>> mrJobToInternalJobs;
+
+    //private List<Chunk> mapOutputChunks;
 
     private JobScheduler jobQueue;
 
     List<Job> runningJobs;
 
+    private int mapReduceJobID = 0;
     private int internalJobID = 0;
 
 
@@ -56,7 +62,9 @@ public class Master {
         }
 
         runningJobs = Collections.synchronizedList(new ArrayList<Job>());
-        mapOutputChunks = Collections.synchronizedList(new ArrayList<Chunk>());
+
+        mrJobToInternalJobs = new ConcurrentHashMap<Integer, List<Job>>();
+        //mapOutputChunks = Collections.synchronizedList(new ArrayList<Chunk>());
 
         //DFS assumes that slaves dont die
         System.out.println("messengers after init: " + messengers);
@@ -71,12 +79,12 @@ public class Master {
         Chunk floatChunk1 = filesToDistributedFiles.get(new File("./floatyolotest.txt")).getChunks().get(0);
 
         Chunk reducewc1 = filesToDistributedFiles.get(new File("./reducewc1.txt")).getChunks().get(0);
-        Chunk reducewc2 = filesToDistributedFiles.get(new File("./reducewc1.txt")).getChunks().get(0);
+        Chunk reducewc2 = filesToDistributedFiles.get(new File("./reducewc2.txt")).getChunks().get(0);
 
 
 
         //chunk arg ONLY FOR TESTING
-        jobQueue = new JobScheduler(wordCountChunk,reducewc2);
+        jobQueue = new JobScheduler(reducewc1,reducewc2);
         System.out.println("messengers after jobschdule: " + messengers);
 
 
@@ -85,7 +93,7 @@ public class Master {
         new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start(); //fill in args to thread
         for (SocketMessenger slaveMessenger : messengers.values()) {
             new Thread(new SlaveListenerThread(slaveMessenger, jobQueue,
-                    messengers, runningJobs, mapOutputChunks, filesToDistributedFiles)).start();
+                    messengers, runningJobs, mrJobToInternalJobs, filesToDistributedFiles)).start();
             //fill in other args to thread ?
         }
     }
@@ -115,6 +123,27 @@ public class Master {
                 for (Host host : messengers.keySet()) {
                     System.out.println(host.HOSTNAME);
                 }
+            } else if (line.startsWith("run")) {
+                String[] args = line.split(" ");
+                if (args.length < 2) {
+                    System.out.println("invalid input");
+                }
+                String className = args[1];
+                try {
+                    MapReduceJob mrj = (MapReduceJob) Class.forName(className).newInstance();
+                    boolean status = generateJobs(mrj);
+                    if (status == true)
+                        mapReduceJobID++;
+
+                } catch (ClassNotFoundException e) {
+                    System.out.println("Unable to find mapreduce job class: " + e);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (ClassCastException e) {
+                    e.printStackTrace();
+                }
             }
 
         }
@@ -125,6 +154,25 @@ public class Master {
         //jobQueue.add(job)
 
 
+    }
+
+    public boolean generateJobs(MapReduceJob mrj) {
+        System.out.println("fdf: " + filesToDistributedFiles);
+        File inputFile = new File(mrj.getInputFileName());
+        System.out.println("inputFIle: " + inputFile);
+        System.out.println("fdd conatins: " + filesToDistributedFiles.containsKey(inputFile));
+        List<Chunk> jobChunks = filesToDistributedFiles.get(new File(mrj.getInputFileName())).getChunks();
+        List<Job> mapJobs = new ArrayList<Job>();
+        for (Chunk chunk : jobChunks) {
+            Job mapJob = new Job(mapReduceJobID, internalJobID, null, mrj.getMapper(), chunk, null);
+            mapJobs.add(mapJob);
+            internalJobID++;
+        }
+        System.out.println("generated new mapreduce job subjobs");
+        System.out.println(mrJobToInternalJobs);
+        mrJobToInternalJobs.put(mapReduceJobID, mapJobs);
+        boolean status = jobQueue.addJobs(mapJobs);
+        return status;
     }
 
     public static void main(String[] args) throws IOException {
@@ -139,12 +187,12 @@ public class Master {
         files.add(new File("./floatyolotest.txt"));
         files.add(new File("./reducewc1.txt"));
         files.add(new File("./reducewc2.txt"));
+        files.add(new File("wordcount.txt"));
         System.out.println("files to chunk: " + files);
         slaves.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
         slaves.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
         slaves.add(new Host("UNIX4.ANDREW.CMU.EDU", 6666));
         Master master = new Master(files, slaves);
         master.listenInput();
-
     }
 }

@@ -24,11 +24,13 @@ import java.io.Serializable;
 public class Job<K extends Serializable & Comparable<K>,V extends Serializable> implements Serializable {
 
     //for general jobs
+    public int mrJobID;
     public int internalJobID;
     public Host host; //the host the job is running on
     public int tries; //number of times job has been tried before
-    public boolean success; //whether job successful or not
+    public JobState state;
     public JobType jobType;
+    public Chunk jobResultChunk;
 
     //map jobs
     public Chunk chunk;
@@ -41,12 +43,14 @@ public class Job<K extends Serializable & Comparable<K>,V extends Serializable> 
     public Chunk chunk1;
     public Chunk chunk2;
 
-    public Job(int jobID, Host host, JobType jobType) {
+    public Job(int mrJobID, int jobID, Host host, JobType jobType, JobState jobState) {
+        this.mrJobID = mrJobID;
         this.internalJobID = jobID;
         this.host = host;
         this.jobType = jobType;
+        this.state = jobState;
+        this.jobResultChunk = null;
         tries = 0;
-        success = false;
         recordRange = null;
 
         chunk = null;
@@ -57,31 +61,31 @@ public class Job<K extends Serializable & Comparable<K>,V extends Serializable> 
     }
 
     //shortcut for common case
-    public Job(int jobID, Host host, int tries, boolean success, JobType jobType) {
-        this(jobID, host, jobType);
-        this.success = success;
+    public Job(int mrJobID, int jobID, Host host, int tries, boolean success, JobType jobType, JobState jobState) {
+        this(mrJobID, jobID, host, jobType, jobState);
+        this.state = jobState;
         this.tries = 0;
     }
 
     //shortcut for map jobs
     //public Job(int jobID, Host host, MapperInterface<K,V> mapperInterface, Chunk chunk) { TESTING
-    public Job(int jobID, Host host, MapperInterface mapperInterface, Chunk chunk) {
-        this(jobID, host, JobType.MAP);
+    public Job(int mrJobID, int jobID, Host host, MapperInterface mapperInterface, Chunk chunk, JobState jobState) {
+        this(mrJobID, jobID, host, JobType.MAP, jobState);
         this.mapperInterface = mapperInterface;
         this.chunk = chunk;
         this.recordRange = chunk.getRecordRange();
     }
 
     //shortcut for reduce jobs
-    public Job(int jobID, Host host, ReducerInterface reducerInterface, Chunk chunk1, Chunk chunk2) {
-        this(jobID, host, JobType.REDUCE);
+    public Job(int mrJobID, int jobID, Host host, ReducerInterface reducerInterface, Chunk chunk1, Chunk chunk2, JobState jobState) {
+        this(mrJobID, jobID, host, JobType.REDUCE, jobState);
         this.reducerInterface = reducerInterface;
         this.chunk1 = chunk1;
         this.chunk2 = chunk2;
     }
 
     public String toString() {
-        return String.format("[%d]: [%s] job on [%s] (%s)",internalJobID, jobType, host, success);
+        return String.format("[%d]: [%s] job on [%s] (%s) (result: %s)",internalJobID, jobType, host, state, jobResultChunk);
     }
 
     public boolean equals(Object other) {

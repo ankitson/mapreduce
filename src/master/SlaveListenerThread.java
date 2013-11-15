@@ -8,9 +8,9 @@ package master;
  * To change this template use File | Settings | File Templates.
  */
 
-import dfs.Chunk;
 import dfs.DistributedFile;
 import jobs.Job;
+import jobs.JobState;
 import messages.*;
 import util.Host;
 
@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Listens for messages from a slave and services their requests
@@ -33,18 +34,18 @@ public class SlaveListenerThread implements Runnable {
     private SocketMessenger slaveMessenger;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
     private List<Job> runningJobs;
-    private List<Chunk> mapOutputChunks;
+    private ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs;
     private Map<File, DistributedFile> filesToDistributedFiles;
     private final int MAX_JOB_TRIES = 3; //read from config
 
     public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler,
                                ConcurrentHashMap <Host, SocketMessenger> messengers, List<Job> runningJobs,
-                               List<Chunk> mapOutputChunks, Map<File, DistributedFile> filesToDistributedFiles) {
+                               ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs, Map<File, DistributedFile> filesToDistributedFiles) {
         this.slaveMessenger = slaveMessenger;
         this.jobScheduler = jobScheduler;
         this.messengers = messengers;
         this.runningJobs = runningJobs;
-        this.mapOutputChunks = mapOutputChunks;
+        this.mrJobToInternalJobs = mrJobToInternalJobs;
         this.filesToDistributedFiles = filesToDistributedFiles;
     }
 
@@ -56,15 +57,16 @@ public class SlaveListenerThread implements Runnable {
                 if (message instanceof JobMessage) {
                     JobMessage jm = ((JobMessage) message);
                     Job job = jm.job;
-                    if (job.success == true) {
+                    updateJobStatus(job);
+                    if (job.state == JobState.SUCCESS) {
                         System.out.println(job + " completed successfully");
                         switch (job.jobType) {
                             case MAP:
                                 String mapOutFileName = jm.fileName;
                                 HashSet<Host> hosts = new HashSet<Host>();
                                 hosts.add(job.host);
-                                Chunk mapOutChunk = new Chunk(mapOutFileName, 0, hosts, null);
-                                mapOutputChunks.add(mapOutChunk);
+                                //Chunk mapOutChunk = new Chunk(mapOutFileName, 0, hosts, null);
+                                System.out.println("main job to mini jobs: " + mrJobToInternalJobs);
                                 break;
                             case REDUCE:
                                 FileInfoMessage fim = ((FileInfoMessage) slaveMessenger.receiveMessage());
@@ -116,6 +118,16 @@ public class SlaveListenerThread implements Runnable {
                 System.err.println("Error receiving message from slave (possibly timeout): " + e);
             } catch (ClassNotFoundException e) {
                 System.err.println("Illegal message received from slave: " + e);
+            }
+        }
+    }
+
+    public void updateJobStatus(Job job) {
+        List<Job> existingJobs = mrJobToInternalJobs.get(job.mrJobID);
+        for (int i=0;i<existingJobs.size();i++) {
+            Job existingJob = existingJobs.get(i);
+            if (existingJob.equals(job)) {
+                existingJobs.set(i, job);
             }
         }
     }
