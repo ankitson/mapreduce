@@ -10,6 +10,7 @@ package dfs;
 public final class DistributedFileSystemConstants {
 
     public static final int REPLICATION_FACTOR = 2;
+    public static final int SPLIT_SIZE = 5;
 
     /*public Set<Host> nodes;
     private Map<Host, SocketMessenger> messengers;

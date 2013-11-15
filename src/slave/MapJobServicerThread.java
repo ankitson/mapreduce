@@ -160,7 +160,7 @@ public class MapJobServicerThread extends JobThread {
         mapJob.state = JobState.SUCCESS;
         Set<Host> selfHost = new HashSet<Host>();
         selfHost.add(new Host(hostName, FileServerThread.FS_LISTEN_PORT));
-        mapJob.jobResultChunk = new Chunk(outFileName, chunk.getChunkNo(), selfHost, null);
+        mapJob.jobResultChunk = new Chunk(outFileName, -1, selfHost, null);
         masterMessenger.sendMessage(new JobMessage(mapJob, outFileName));
         return;
     }

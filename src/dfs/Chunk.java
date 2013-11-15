@@ -18,7 +18,7 @@ public class Chunk implements Serializable {
     public static final String CHUNK_PATH = "./tmp/distributed-chunks/"; //read from config
 
     String fileName;
-    int chunkNo;
+    public int chunkNo;
     Set<Host> hosts;
     Pair<Integer,Integer> recordRange; //the range of records this chunk contains
 
@@ -42,7 +42,10 @@ public class Chunk implements Serializable {
     }
 
     public String getPathOnHost(String hostName) {
-        return getPathPrefixOnHost(hostName) + fileName + "-" + chunkNo;
+        if (chunkNo != -1 && chunkNo != 0)
+            return getPathPrefixOnHost(hostName) + fileName + "-" + chunkNo;
+        else
+            return getPathPrefixOnHost(hostName) + fileName;
     }
 
     public static String getPathPrefixOnHost(String hostName) {

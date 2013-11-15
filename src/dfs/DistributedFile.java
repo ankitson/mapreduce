@@ -28,12 +28,16 @@ public class DistributedFile {
 
     private static KCyclicIterator<Host> slavesIterator = null;
 
-    public DistributedFile(File f, Map<Host,SocketMessenger> messengers) throws IOException {
+    public DistributedFile(File f, int splitSize, Map<Host,SocketMessenger> messengers, int replicationFactor) throws IOException {
         FILE_NAME = f.getName();
-        SPLIT_SIZE = 5; //read from config //number of lines in each split
+        SPLIT_SIZE = splitSize; //read from config //number of lines in each split
         this.messengers = messengers;
         chunks = new LinkedList<Chunk>();
-        chunkAndSend(f, new ArrayList<Host>(messengers.keySet()));
+
+        ArrayList<Host> slaves = new ArrayList<Host>(messengers.keySet());
+        int replicateSize = Math.max(replicationFactor, slaves.size());
+        List<Host> slavesToReplicateOn = slaves.subList(0, replicateSize);
+        chunkAndSend(f, slavesToReplicateOn);
     }
 
     public String toString() {
@@ -97,7 +101,7 @@ public class DistributedFile {
                         currentChunkHosts.add(slave);
                     }
                     currentChunk.setHosts(currentChunkHosts);
-                    currentChunk.setRecordRange(new Pair<Integer,Integer>(prevChunkEnd+1,lineCount));
+                    currentChunk.setRecordRange(new Pair<Integer, Integer>(prevChunkEnd + 1, lineCount));
                     prevChunkEnd = lineCount;
                     chunks.add(currentChunk);
 

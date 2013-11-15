@@ -43,6 +43,9 @@ public class Job<K extends Serializable & Comparable<K>,V extends Serializable> 
     public Chunk chunk1;
     public Chunk chunk2;
 
+    public Job() {
+
+    }
     public Job(int mrJobID, int jobID, Host host, JobType jobType, JobState jobState) {
         this.mrJobID = mrJobID;
         this.internalJobID = jobID;

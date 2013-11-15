@@ -3,13 +3,14 @@ package master;
 import dfs.Chunk;
 import jobs.Job;
 import jobs.JobState;
+import jobs.ReducerInterface;
 import util.Host;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created with IntelliJ IDEA.
@@ -25,67 +26,13 @@ import java.util.concurrent.PriorityBlockingQueue;
 //jobs are only added in 2 place
 public class JobScheduler {
 
+    private PriorityBlockingQueue<Job> jobQueue;
+    private List<Job> chunkList;
     private boolean ready;
-
-    private ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs;
-    public JobScheduler(ConcurrentMap<Integer, List<Job>> mrJobToInternalJobs) {
-        this.mrJobToInternalJobs = mrJobToInternalJobs;
-    }
-
-    //should only be called by dispatcher - race conditions if not
-    public Job dequeueJob() {
-        List<Job> currentlyQueuedJobs = new ArrayList<Job>();
-        for (List<Job> jobs : mrJobToInternalJobs.values()) {
-            for (Job job : jobs) {
-                if (job.state == JobState.QUEUED)
-                    currentlyQueuedJobs.add(job);
-            }
-        }
-    }
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    private AtomicInteger internalJobID;
 
     //CHUNK ARG ONLY FOR TESTING
-    public JobScheduler(Chunk chunk1, Chunk chunk2) {
+    public JobScheduler(Chunk chunk1, List<Job> chunkList, AtomicInteger internalJobID) {
         jobQueue = new PriorityBlockingQueue<Job>(1, new JobComparator());
 
         //ONLY FOR TESTING
@@ -104,11 +51,12 @@ public class JobScheduler {
         //Job reduceJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), reducer, chunk1, chunk2);
         //jobQueue.add(reduceJob);
 
-        /*Job mapJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), JobType.MAP);
-        mapJob.chunk = chunk1;
-        mapJob.mapperInterface = new WordCountMapper(new WordCountReducer());
-        mapJob.recordRange = new Pair<Integer,Integer>(1,20);
-        jobQueue.add(mapJob);*/
+        //MapperInterface mi = new WordCountMapper(new WordCountReducer());
+        //Job mapJob = new Job(10, 1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), mi, chunk1, JobState.QUEUED);
+        //jobQueue.add(mapJob);
+
+        this.chunkList = chunkList;
+        this.internalJobID = internalJobID;
 
         //ReducerInterface<String,Integer,String,Integer> wcReducer = new WordCountReducer();
         //Job reduceJob = new Job(10, 1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), wcReducer, chunk1, chunk2, null);
@@ -147,6 +95,18 @@ public class JobScheduler {
     }
 
     public Job dequeueNextJob() {
+        if (chunkList.size() >= 2) {
+            Job reduceJob;
+            Job job1 = chunkList.remove(0);
+            Job job2 = chunkList.remove(0);
+            Chunk chunk1 = job1.chunk;
+            Chunk chunk2 = job2.chunk;
+            ReducerInterface reducer = job1.reducerInterface;
+            Host host = chunk1.getHosts().iterator().next();
+            reduceJob = new Job(job1.mrJobID, internalJobID.incrementAndGet(), host, reducer, chunk1, chunk2, JobState.QUEUED);
+            return reduceJob;
+        }
+
         return jobQueue.poll();
     }
 

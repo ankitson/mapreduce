@@ -8,19 +8,24 @@ package master;
  * To change this template use File | Settings | File Templates.
  */
 
+import dfs.Chunk;
 import dfs.DistributedFile;
-import jobs.*;
+import dfs.DistributedFileSystemConstants;
+import jobs.Job;
+import jobs.JobState;
 import messages.*;
+import util.FileUtils;
 import util.Host;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Listens for messages from a slave and services their requests
@@ -30,29 +35,21 @@ public class SlaveListenerThread implements Runnable {
     private JobScheduler jobScheduler;
     private SocketMessenger slaveMessenger;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
-    private List<Job> runningJobs;
-    private ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs;
     private Map<File, DistributedFile> filesToDistributedFiles;
-    private AtomicInteger internalJobID;
-    private ConcurrentMap<Integer, MapReduceJob> mrIDtoJob;
+    private List<Job> completedMaps;
+    private List<Job> chunkList;
 
     private final int MAX_JOB_TRIES = 3; //read from config
 
-    private Map<Integer, List<Job>> successMapJobs;
-
-
     public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler,
-                               ConcurrentHashMap <Host, SocketMessenger> messengers, List<Job> runningJobs,
-                               ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs, Map<File, DistributedFile> filesToDistributedFiles,
-                               AtomicInteger internalJobID, ConcurrentMap<Integer, MapReduceJob> mrIDtoJob) {
+                               ConcurrentHashMap <Host, SocketMessenger> messengers,
+                               Map<File, DistributedFile> filesToDistributedFiles, List<Job> completedMaps, List<Job> chunkList) {
         this.slaveMessenger = slaveMessenger;
         this.jobScheduler = jobScheduler;
         this.messengers = messengers;
-        this.runningJobs = runningJobs;
-        this.mrJobToInternalJobs = mrJobToInternalJobs;
         this.filesToDistributedFiles = filesToDistributedFiles;
-        this.internalJobID = internalJobID;
-        this.mrIDtoJob = mrIDtoJob;
+        this.completedMaps = completedMaps;
+        this.chunkList = chunkList;
     }
 
     public void run() {
@@ -63,7 +60,7 @@ public class SlaveListenerThread implements Runnable {
                 if (message instanceof JobMessage) {
                     JobMessage jm = ((JobMessage) message);
                     Job job = jm.job;
-                    updateJobStatus(job);
+                    //updateJobStatus(job);
                     if (job.state == JobState.SUCCESS) {
                         System.out.println(job + " completed successfully");
                         switch (job.jobType) {
@@ -71,32 +68,45 @@ public class SlaveListenerThread implements Runnable {
                                 String mapOutFileName = jm.fileName;
                                 HashSet<Host> hosts = new HashSet<Host>();
                                 hosts.add(job.host);
-                                //Chunk mapOutChunk = new Chunk(mapOutFileName, 0, hosts, null);
-                                System.out.println("main job to mini jobs: " + mrJobToInternalJobs);
-                                addSuccessfulMapJob(job);
+                                completedMaps.add(job);
+                                Job nJob = new Job();
+                                nJob.chunk = job.jobResultChunk;
+                                nJob.reducerInterface = job.reducerInterface;
+                                System.out.println("adding job from map to clist: " + nJob);
+                                chunkList.add(nJob);
                                 break;
                             case REDUCE:
                                 FileInfoMessage fim = ((FileInfoMessage) slaveMessenger.receiveMessage());
                                 File reduceOutFile = new File(fim.getFileName());
                                 slaveMessenger.receiveFile(reduceOutFile,(int) fim.getFileSize());
-                                filesToDistributedFiles.put(reduceOutFile, new DistributedFile(reduceOutFile, messengers));
+                                DistributedFile newDF = new DistributedFile(
+                                        reduceOutFile, FileUtils.countLines(reduceOutFile)+1,messengers, DistributedFileSystemConstants.REPLICATION_FACTOR);
+                                filesToDistributedFiles.put(reduceOutFile, newDF);
 
-                                ReducerInterface nextReduce;
-                                nextReduce = mrIDtoJob.get(job.mrJobID).getReducer();
+                                System.out.println("chunkList before reduce result add: " + chunkList);
 
+                                List<Chunk> chunks = filesToDistributedFiles.get(reduceOutFile).getChunks();
+                                completedMaps.add(job);
+                                for (Chunk chunk : chunks) {
+                                    Job newJob = new Job();
+                                    newJob.chunk = chunk;
+                                    newJob.reducerInterface = job.reducerInterface;
+                                    chunkList.add(newJob);
+                                }
+                                System.out.println("chunkList after reduce result add: " + chunkList);
                                 //MAKE NEW REDUCE JOB ON THIS REDUCED CHUNK  + OTHER CHUNKS
                                 break;
                             case DUMMY:
                                 break;
                         }
+
                         //add to user specific data structures here
                         //tell user where result of map/reduce is?
-                        runningJobs.remove(job);
+                        //runningJobs.remove(job);
                     }
                     else { //job failed
                         if (job.tries == MAX_JOB_TRIES) {
                             System.out.println(job + " failed multiple times. Aborting");
-                            //user specific data structures
                         } else {
                             System.out.println("Retrying " + job);
                             jobScheduler.addJob(job);
@@ -133,17 +143,7 @@ public class SlaveListenerThread implements Runnable {
         }
     }
 
-    public void updateJobStatus(Job job) {
-        List<Job> existingJobs = mrJobToInternalJobs.get(job.mrJobID);
-        for (int i=0;i<existingJobs.size();i++) {
-            Job existingJob = existingJobs.get(i);
-            if (existingJob.equals(job)) {
-                existingJobs.set(i, job);
-            }
-        }
-    }
-
-    public void addSuccessfulMapJob(Job job) {
+    /*public void addSuccessfulMapJob(Job job) {
         if (job.state != JobState.SUCCESS || job.jobType != JobType.MAP)
             return;
 
@@ -159,5 +159,5 @@ public class SlaveListenerThread implements Runnable {
             successMapJobs.put(mrJobID, currentSuccess);
         }
 
-    }
+    }*/
 }

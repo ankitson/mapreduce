@@ -2,6 +2,7 @@ package master;
 
 import dfs.Chunk;
 import dfs.DistributedFile;
+import dfs.DistributedFileSystemConstants;
 import jobs.Job;
 import jobs.MapReduceJob;
 import messages.SocketMessenger;
@@ -11,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -32,29 +32,31 @@ public class Master {
 
     public Set<Host> slaves; //parse from config file //MAKE PRIVATE LATER
     public Set<File> files; //parse from config file //MAKE PRIVATE LATER
-    private Map<File, DistributedFile> filesToDistributedFiles;
+    private Map<File, DistributedFile> filesToDistributedFiles = new HashMap<File, DistributedFile>();
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
+    private List<Job> chunkList;
 
-    private ConcurrentMap<Integer, List<Job>> mrJobToInternalJobs;
-
-    private ConcurrentHashMap<Integer, MapReduceJob> mrIDtoJob;
-
-    //private List<Chunk> mapOutputChunks;
 
     private JobScheduler jobQueue;
 
     List<Job> runningJobs;
 
+
+
     private int mapReduceJobID = 0;
-    private AtomicInteger internalJobID = new AtomicInteger(0);
+    private AtomicInteger internalJobID  = new AtomicInteger(0);
 
 
     //yolo constructor for testing fix later
     public Master(Set<File> files, Set<Host> slaves) throws IOException {
         this.files = files;
         this.slaves = slaves;
-
+        runningJobs = Collections.synchronizedList(new ArrayList<Job>());
         messengers = new ConcurrentHashMap<Host,SocketMessenger>();
+        chunkList = Collections.synchronizedList(new ArrayList<Job>());
+
+
+
         new Thread(new SlaveJoinThread(messengers)).start();
         System.out.println("Waiting for all slaves to connect.");
 
@@ -63,47 +65,24 @@ public class Master {
             ;
         }
 
-        runningJobs = Collections.synchronizedList(new ArrayList<Job>());
-
-        mrJobToInternalJobs = new ConcurrentHashMap<Integer, List<Job>>();
-        //mapOutputChunks = Collections.synchronizedList(new ArrayList<Chunk>());
-
-        //DFS assumes that slaves dont die
-        System.out.println("messengers after init: " + messengers);
-        filesToDistributedFiles = new HashMap<File, DistributedFile>();
         initializeDFS(files);
-        System.out.println("messengers after dfs: " + messengers);
 
+        System.out.println("fdf: " + filesToDistributedFiles);
+        System.out.println("fdf,get: " + filesToDistributedFiles.get("wordcount.txt"));
+        System.out.println("fdf,get,chunks: " + filesToDistributedFiles.get(new File("wordcount.txt")).getChunks());
+        jobQueue = new JobScheduler(filesToDistributedFiles.get(new File("wordcount.txt")).getChunks().get(0), chunkList, internalJobID);
 
         new Thread(new HealthCheckerThread(messengers)).start();
-
-        Chunk wordCountChunk = filesToDistributedFiles.get(new File("./wordcounttest.txt")).getChunks().get(0);
-        Chunk floatChunk1 = filesToDistributedFiles.get(new File("./floatyolotest.txt")).getChunks().get(0);
-
-        Chunk reducewc1 = filesToDistributedFiles.get(new File("./reducewc1.txt")).getChunks().get(0);
-        Chunk reducewc2 = filesToDistributedFiles.get(new File("./reducewc2.txt")).getChunks().get(0);
-
-
-
-        //chunk arg ONLY FOR TESTING
-        jobQueue = new JobScheduler(reducewc1,reducewc2);
-        System.out.println("messengers after jobschdule: " + messengers);
-
-
-
-
-        new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start(); //fill in args to thread
+        new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start();
         for (SocketMessenger slaveMessenger : messengers.values()) {
-            new Thread(new SlaveListenerThread(slaveMessenger, jobQueue,
-                    messengers, runningJobs, mrJobToInternalJobs, filesToDistributedFiles, internalJobID,
-                    mrIDtoJob)).start();
-            //fill in other args to thread ?
+            new Thread(new SlaveListenerThread(slaveMessenger, jobQueue, messengers,
+                    filesToDistributedFiles, Collections.synchronizedList(new ArrayList <Job>()), chunkList)).start();
         }
     }
 
     private void initializeDFS(Set<File> files) throws IOException {
         for (File file : files) {
-            filesToDistributedFiles.put(file, new DistributedFile(file, messengers));
+            filesToDistributedFiles.put(file, new DistributedFile(file, DistributedFileSystemConstants.SPLIT_SIZE,messengers,DistributedFileSystemConstants.REPLICATION_FACTOR));
         }
     }
 
@@ -150,34 +129,19 @@ public class Master {
             }
 
         }
-
-        //every time the user inputs an add job,
-        //job.jobID = jobID
-        //jobID++
-        //jobQueue.add(job)
-
-
     }
 
     public boolean generateJobs(MapReduceJob mrj) {
-        System.out.println("fdf: " + filesToDistributedFiles);
         File inputFile = new File(mrj.getInputFileName());
-        System.out.println("inputFIle: " + inputFile);
-        System.out.println("fdd conatins: " + filesToDistributedFiles.containsKey(inputFile));
         List<Chunk> jobChunks = filesToDistributedFiles.get(new File(mrj.getInputFileName())).getChunks();
         List<Job> mapJobs = new ArrayList<Job>();
         for (Chunk chunk : jobChunks) {
             Job mapJob = new Job(mapReduceJobID, internalJobID.get(), null, mrj.getMapper(), chunk, null);
+            mapJob.reducerInterface = mrj.getReducer();
             mapJobs.add(mapJob);
             internalJobID.incrementAndGet();
         }
-        System.out.println("generated new mapreduce job subjobs");
-        System.out.println(mrJobToInternalJobs);
-        mrJobToInternalJobs.put(mapReduceJobID, mapJobs);
         boolean status = jobQueue.addJobs(mapJobs);
-        if (status == true)
-            mrIDtoJob.put(mapReduceJobID, mrj);
-
         return status;
     }
 
@@ -194,7 +158,6 @@ public class Master {
         files.add(new File("./reducewc1.txt"));
         files.add(new File("./reducewc2.txt"));
         files.add(new File("wordcount.txt"));
-        System.out.println("files to chunk: " + files);
         slaves.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
         slaves.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
         slaves.add(new Host("UNIX4.ANDREW.CMU.EDU", 6666));

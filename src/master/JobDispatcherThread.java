@@ -48,8 +48,8 @@ public class JobDispatcherThread implements Runnable {
     //should this busy-loop or have a timeout?
     public void run() {
         while (true) {
-            //if (!jobQueue.ready())
-            //    continue;
+            if (!jobQueue.ready())
+                continue;
 
             Job dispatchJob = jobQueue.dequeueNextJob();
 
