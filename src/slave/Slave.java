@@ -76,6 +76,7 @@ public class Slave {
                     FileInfoMessage fim = (FileInfoMessage) message;
                     System.out.println("received file info message: " + fim);
                     File receivedFile = new File(Chunk.CHUNK_PATH + fim.getFileName());
+                    FileUtils.createFile(receivedFile);
                     masterMessenger.receiveFile(receivedFile, (int) fim.getFileSize());
                     System.out.println("received file" + FileUtils.print(receivedFile));
 

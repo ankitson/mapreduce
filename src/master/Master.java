@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created with IntelliJ IDEA.
@@ -34,8 +35,9 @@ public class Master {
     private Map<File, DistributedFile> filesToDistributedFiles;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
 
-
     private ConcurrentMap<Integer, List<Job>> mrJobToInternalJobs;
+
+    private ConcurrentHashMap<Integer, MapReduceJob> mrIDtoJob;
 
     //private List<Chunk> mapOutputChunks;
 
@@ -44,7 +46,7 @@ public class Master {
     List<Job> runningJobs;
 
     private int mapReduceJobID = 0;
-    private int internalJobID = 0;
+    private AtomicInteger internalJobID = new AtomicInteger(0);
 
 
     //yolo constructor for testing fix later
@@ -93,7 +95,8 @@ public class Master {
         new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start(); //fill in args to thread
         for (SocketMessenger slaveMessenger : messengers.values()) {
             new Thread(new SlaveListenerThread(slaveMessenger, jobQueue,
-                    messengers, runningJobs, mrJobToInternalJobs, filesToDistributedFiles)).start();
+                    messengers, runningJobs, mrJobToInternalJobs, filesToDistributedFiles, internalJobID,
+                    mrIDtoJob)).start();
             //fill in other args to thread ?
         }
     }
@@ -164,14 +167,17 @@ public class Master {
         List<Chunk> jobChunks = filesToDistributedFiles.get(new File(mrj.getInputFileName())).getChunks();
         List<Job> mapJobs = new ArrayList<Job>();
         for (Chunk chunk : jobChunks) {
-            Job mapJob = new Job(mapReduceJobID, internalJobID, null, mrj.getMapper(), chunk, null);
+            Job mapJob = new Job(mapReduceJobID, internalJobID.get(), null, mrj.getMapper(), chunk, null);
             mapJobs.add(mapJob);
-            internalJobID++;
+            internalJobID.incrementAndGet();
         }
         System.out.println("generated new mapreduce job subjobs");
         System.out.println(mrJobToInternalJobs);
         mrJobToInternalJobs.put(mapReduceJobID, mapJobs);
         boolean status = jobQueue.addJobs(mapJobs);
+        if (status == true)
+            mrIDtoJob.put(mapReduceJobID, mrj);
+
         return status;
     }
 
@@ -195,4 +201,5 @@ public class Master {
         Master master = new Master(files, slaves);
         master.listenInput();
     }
+
 }

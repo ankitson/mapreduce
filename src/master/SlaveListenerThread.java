@@ -9,8 +9,7 @@ package master;
  */
 
 import dfs.DistributedFile;
-import jobs.Job;
-import jobs.JobState;
+import jobs.*;
 import messages.*;
 import util.Host;
 
@@ -18,12 +17,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Listens for messages from a slave and services their requests
@@ -36,17 +33,26 @@ public class SlaveListenerThread implements Runnable {
     private List<Job> runningJobs;
     private ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs;
     private Map<File, DistributedFile> filesToDistributedFiles;
+    private AtomicInteger internalJobID;
+    private ConcurrentMap<Integer, MapReduceJob> mrIDtoJob;
+
     private final int MAX_JOB_TRIES = 3; //read from config
+
+    private Map<Integer, List<Job>> successMapJobs;
+
 
     public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler,
                                ConcurrentHashMap <Host, SocketMessenger> messengers, List<Job> runningJobs,
-                               ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs, Map<File, DistributedFile> filesToDistributedFiles) {
+                               ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs, Map<File, DistributedFile> filesToDistributedFiles,
+                               AtomicInteger internalJobID, ConcurrentMap<Integer, MapReduceJob> mrIDtoJob) {
         this.slaveMessenger = slaveMessenger;
         this.jobScheduler = jobScheduler;
         this.messengers = messengers;
         this.runningJobs = runningJobs;
         this.mrJobToInternalJobs = mrJobToInternalJobs;
         this.filesToDistributedFiles = filesToDistributedFiles;
+        this.internalJobID = internalJobID;
+        this.mrIDtoJob = mrIDtoJob;
     }
 
     public void run() {
@@ -67,12 +73,17 @@ public class SlaveListenerThread implements Runnable {
                                 hosts.add(job.host);
                                 //Chunk mapOutChunk = new Chunk(mapOutFileName, 0, hosts, null);
                                 System.out.println("main job to mini jobs: " + mrJobToInternalJobs);
+                                addSuccessfulMapJob(job);
                                 break;
                             case REDUCE:
                                 FileInfoMessage fim = ((FileInfoMessage) slaveMessenger.receiveMessage());
                                 File reduceOutFile = new File(fim.getFileName());
                                 slaveMessenger.receiveFile(reduceOutFile,(int) fim.getFileSize());
                                 filesToDistributedFiles.put(reduceOutFile, new DistributedFile(reduceOutFile, messengers));
+
+                                ReducerInterface nextReduce;
+                                nextReduce = mrIDtoJob.get(job.mrJobID).getReducer();
+
                                 //MAKE NEW REDUCE JOB ON THIS REDUCED CHUNK  + OTHER CHUNKS
                                 break;
                             case DUMMY:
@@ -130,5 +141,23 @@ public class SlaveListenerThread implements Runnable {
                 existingJobs.set(i, job);
             }
         }
+    }
+
+    public void addSuccessfulMapJob(Job job) {
+        if (job.state != JobState.SUCCESS || job.jobType != JobType.MAP)
+            return;
+
+        int mrJobID = job.mrJobID;
+
+        List<Job> currentSuccess = successMapJobs.get(mrJobID);
+        if (currentSuccess == null) {
+            List<Job> newList = new ArrayList<Job>();
+            newList.add(job);
+            successMapJobs.put(mrJobID, newList);
+        } else {
+            currentSuccess.add(job);
+            successMapJobs.put(mrJobID, currentSuccess);
+        }
+
     }
 }

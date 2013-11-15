@@ -8,6 +8,7 @@ import util.Host;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /**
@@ -24,8 +25,64 @@ import java.util.concurrent.PriorityBlockingQueue;
 //jobs are only added in 2 place
 public class JobScheduler {
 
-    private PriorityBlockingQueue<Job> jobQueue;
     private boolean ready;
+
+    private ConcurrentMap<Integer,List<Job>> mrJobToInternalJobs;
+    public JobScheduler(ConcurrentMap<Integer, List<Job>> mrJobToInternalJobs) {
+        this.mrJobToInternalJobs = mrJobToInternalJobs;
+    }
+
+    //should only be called by dispatcher - race conditions if not
+    public Job dequeueJob() {
+        List<Job> currentlyQueuedJobs = new ArrayList<Job>();
+        for (List<Job> jobs : mrJobToInternalJobs.values()) {
+            for (Job job : jobs) {
+                if (job.state == JobState.QUEUED)
+                    currentlyQueuedJobs.add(job);
+            }
+        }
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     //CHUNK ARG ONLY FOR TESTING
     public JobScheduler(Chunk chunk1, Chunk chunk2) {
