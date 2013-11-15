@@ -50,10 +50,8 @@ public class SocketMessenger {
 
     public Message receiveMessage() throws IOException, ClassNotFoundException {
         if (objectInputStream == null) {
-            System.out.println("creating new obj input stream");
             objectInputStream = new ObjectInputStream(socket.getInputStream());
         }
-        System.out.println("receiving message");
         return (Message) objectInputStream.readObject();
     }
 

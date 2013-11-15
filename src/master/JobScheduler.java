@@ -4,11 +4,14 @@ import dfs.Chunk;
 import jobs.Job;
 import jobs.JobState;
 import jobs.ReducerInterface;
+import messages.SocketMessenger;
 import util.Host;
+import util.KCyclicIterator;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,37 +33,17 @@ public class JobScheduler {
     private List<Job> chunkList;
     private boolean ready;
     private AtomicInteger internalJobID;
+    private ConcurrentMap<Host, SocketMessenger> messengers;
 
     //CHUNK ARG ONLY FOR TESTING
-    public JobScheduler(Chunk chunk1, List<Job> chunkList, AtomicInteger internalJobID) {
+    public JobScheduler(Chunk chunk1, List<Job> chunkList, AtomicInteger internalJobID,
+                        ConcurrentMap<Host,SocketMessenger> messengers) {
+
         jobQueue = new PriorityBlockingQueue<Job>(1, new JobComparator());
-
-        //ONLY FOR TESTING
-        //Job dummyJob = new Job(0, new Host("unix1.andrew.cmu.edu", 6666), JobType.DUMMY);
-
-        /*Job mapJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), JobType.MAP);
-
-        mapJob.chunk = chunk;
-        mapJob.mapperInterface = new FloatMapper(new FloatCombiner());
-        mapJob.recordRange = new Pair<Integer,Integer>(1,20);
-
-        //jobQueue.add(dummyJob);
-        jobQueue.add(mapJob);*/
-
-        //ReducerInterface reducer = new WordCountReducer();
-        //Job reduceJob = new Job(1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), reducer, chunk1, chunk2);
-        //jobQueue.add(reduceJob);
-
-        //MapperInterface mi = new WordCountMapper(new WordCountReducer());
-        //Job mapJob = new Job(10, 1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), mi, chunk1, JobState.QUEUED);
-        //jobQueue.add(mapJob);
 
         this.chunkList = chunkList;
         this.internalJobID = internalJobID;
-
-        //ReducerInterface<String,Integer,String,Integer> wcReducer = new WordCountReducer();
-        //Job reduceJob = new Job(10, 1, new Host("UNIX2.ANDREW.CMU.EDU", 6666), wcReducer, chunk1, chunk2, null);
-        //jobQueue.add(reduceJob);
+        this.messengers = messengers;
 
         ready = true;
     }
@@ -69,6 +52,7 @@ public class JobScheduler {
     public boolean addJob(Job job) {
         //set the host for this job - decide which slave to run this job on
         //job.host = x
+
         return jobQueue.add(job);
     }
 
@@ -76,7 +60,18 @@ public class JobScheduler {
         ready = false;
         //FILL THIS IN
 
-        List<Host> hosts = new ArrayList<Host>();
+        KCyclicIterator<Map.Entry<Host,SocketMessenger>> messengerIterator =
+                new KCyclicIterator<Map.Entry<Host, SocketMessenger> >(messengers.entrySet(), 1);
+        for (Job job : jobs) {
+            Map.Entry<Host,SocketMessenger> hostMessenger = messengerIterator.next().get(0);
+            Host host = hostMessenger.getKey();
+            SocketMessenger messenger = hostMessenger.getValue();
+            job.host = host;
+            job.state = JobState.QUEUED;
+            jobQueue.add(job);
+
+        }
+        /*List<Host> hosts = new ArrayList<Host>();
         hosts.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
         hosts.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
         hosts.add(new Host("UNIX4.ANDREW.CMU.EDU", 6666));
@@ -88,8 +83,7 @@ public class JobScheduler {
             if (i == 3)
                 i = 0;
             jobQueue.add(job);
-        }
-        System.out.println("JOBS added to que");
+        }*/
         ready = true;
         return true;
     }

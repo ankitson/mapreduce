@@ -37,23 +37,16 @@ public class FileServerThread implements Runnable {
         while (true) {
             try {
                 socket = serverSocket.accept();
-                System.out.println("file server got request");
                 messenger = new SocketMessenger(socket);
                 message = messenger.receiveMessage();
-                System.out.println("received message");
                 if (message instanceof ChunkMessage) {
                     ChunkMessage cm = ((ChunkMessage) message);
-                    System.out.println("received chunk message: " + ((ChunkMessage) cm));
                     Chunk chunk = ((ChunkMessage) message).getChunk();
-                    System.out.println("chunk: " + chunk);
                     File chunkFile = new File(chunk.getPathOnHost(cm.getHostName()));
-                    System.out.println("looking for: " + chunkFile.getCanonicalPath());
                     if (chunkFile.exists()) {
-                        System.out.println("found it");
                         messenger.sendMessage(new FileInfoMessage(chunkFile.getName(), chunkFile.length()));
                         messenger.sendFile(chunkFile);
                     } else {
-                        System.out.println("not found");
                         messenger.sendMessage(new FileNotFoundMessage());
                     }
                 }

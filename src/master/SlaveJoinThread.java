@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SlaveJoinThread implements Runnable {
 
-    private int SLAVE_TIMEOUT = 30000; //config //heartbeat recv timeout
+    private int SLAVE_TIMEOUT = 300; //config //heartbeat recv timeout
     //should be a multiple of heartbeat SEND frequency (or at least greater)
 
     private int LISTEN_PORT = 6666; //config

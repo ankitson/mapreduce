@@ -42,12 +42,8 @@ public class ReduceJobServicerThread extends JobThread {
 
     public void run() {
         System.out.println("Reduce thread running");
-        System.out.println("reduce job looking for file: " + chunk1);
         File chunk1File = getFileFromChunk(chunk1, hostName);
-        System.out.println("c1file: " + chunk1File);
-        System.out.println("reduce job looking for file: " + chunk2);
         File chunk2File = getFileFromChunk(chunk2, hostName);
-        System.out.println("c2file: " + chunk2File);
 
         try {
             if (chunk1File == null || chunk2File == null) {

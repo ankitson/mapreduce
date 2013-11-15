@@ -56,9 +56,7 @@ public class Slave {
         while (true) {
             try {
                 Message message = masterMessenger.receiveMessage();
-                System.out.println("Slave received message: " + message);
 
-                //TODO: Create job and mapjobthread with correct generic types
                 if (message instanceof JobMessage) {
                     Job job = ((JobMessage) message).job;
                     switch (job.jobType) {
@@ -74,23 +72,19 @@ public class Slave {
                     }
                 } else if (message instanceof FileInfoMessage) {
                     FileInfoMessage fim = (FileInfoMessage) message;
-                    System.out.println("received file info message: " + fim);
                     File receivedFile = new File(Chunk.CHUNK_PATH + fim.getFileName());
                     FileUtils.createFile(receivedFile);
                     masterMessenger.receiveFile(receivedFile, (int) fim.getFileSize());
-                    System.out.println("received file" + FileUtils.print(receivedFile));
 
                     //append the hostname to the chunk dir and copy the file there
                     String fullPath = receivedFile.getCanonicalPath();
                     String parentDir = fullPath.substring(0,fullPath.lastIndexOf("/"));
-                    System.out.println("parent dir: " + parentDir);
                     String newDir = parentDir + "-" + hostName + "/";
                     FileUtils.createDirectory(newDir);
                     String fullNewPath = newDir + fim.getFileName();
-                    System.out.println("full new path: " + fullNewPath);
-                    System.out.println("rename: " + receivedFile.renameTo(new File(fullNewPath)));
+                    receivedFile.renameTo(new File(fullNewPath));
                 } else if (message instanceof HeartBeatMessage) {
-                    System.out.println("Slave received heartbeat");
+                    //System.out.println("Slave received heartbeat");
                     masterMessenger.sendMessage(new HeartBeatMessage());
                 } else if (message instanceof HostNameMessage) {
                     hostName = ((HostNameMessage) message).getHostName();

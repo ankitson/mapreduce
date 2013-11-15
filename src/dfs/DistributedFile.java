@@ -35,8 +35,9 @@ public class DistributedFile {
         chunks = new LinkedList<Chunk>();
 
         ArrayList<Host> slaves = new ArrayList<Host>(messengers.keySet());
-        int replicateSize = Math.max(replicationFactor, slaves.size());
+        int replicateSize = Math.min(replicationFactor, slaves.size());
         List<Host> slavesToReplicateOn = slaves.subList(0, replicateSize);
+
         chunkAndSend(f, slavesToReplicateOn);
     }
 
@@ -51,6 +52,7 @@ public class DistributedFile {
 
     //must use arraylist
     private void chunkAndSend(File file, List<Host> slaves) {
+        System.out.println("Distributing file: " + file.getName());
         if (slavesIterator == null)
             slavesIterator = new KCyclicIterator<Host>(slaves,DistributedFileSystemConstants.REPLICATION_FACTOR);
 
@@ -60,18 +62,13 @@ public class DistributedFile {
 
         int prevChunkEnd = 0;
         int lineCount = 0;
-        System.out.println("before chunk");
-        System.out.println("local chunk path: " + currentChunk.getLocalChunkPath());
         File currentChunkFile = new File(currentChunk.getLocalChunkPath());
-        System.out.println("after chunk");
 
         Set<Host> currentChunkHosts = new HashSet<Host>();
         boolean currentChunkIsEmpty = true;
         try {
             FileUtils.createFile(currentChunkFile);
-            System.out.println("before chunkwriter");
             BufferedWriter currentChunkFileWriter = new BufferedWriter(new FileWriter(currentChunkFile));
-            System.out.println("before reader");
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
             while ((line = br.readLine()) != null) {
@@ -79,15 +76,13 @@ public class DistributedFile {
                     //close the written chunk since it needs to be sent
                     currentChunkFileWriter.close();
 
-                    System.out.println("Sending chunk " + chunkNo + ": " + FileUtils.print(currentChunkFile));
-
                     SocketMessenger slaveMessenger;
                     currentChunkHosts = new HashSet<Host>();
 
                     for (Host slave : slavesIterator.next()) {
                         slaveMessenger = messengers.get(slave);
 
-                        //TODO: better fault tolerance here?
+                        //better fault tolerance here?
                         //currently, a chunk will not be replicated on the right number of slaves
                         //if one of them is dead while chunking
                         if (slaveMessenger == null) {
@@ -97,7 +92,6 @@ public class DistributedFile {
 
                         slaveMessenger.sendMessage(new FileInfoMessage(currentChunkFile.getName(), currentChunkFile.length()));
                         slaveMessenger.sendFile(currentChunkFile);
-                        System.out.println("Sent chunk " + chunkNo + " to host: " + slave);
                         currentChunkHosts.add(slave);
                     }
                     currentChunk.setHosts(currentChunkHosts);
@@ -118,7 +112,6 @@ public class DistributedFile {
             }
             if (!currentChunkIsEmpty) {
                 currentChunkFileWriter.close();
-                System.out.println("Sending chunk " + chunkNo + ": " + FileUtils.print(currentChunkFile));
                 SocketMessenger slaveMessenger;
                 currentChunkHosts = new HashSet<Host>();
                 for (Host slave: slavesIterator.next()) {
@@ -128,7 +121,6 @@ public class DistributedFile {
 
                     slaveMessenger.sendMessage(new FileInfoMessage(currentChunkFile.getName(), currentChunkFile.length()));
                     slaveMessenger.sendFile(currentChunkFile);
-                    System.out.println("Sent chunk " + chunkNo + " to host: " + slave);
                     currentChunkHosts.add(slave);
                 }
                 currentChunk.setHosts(currentChunkHosts);

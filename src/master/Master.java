@@ -41,8 +41,6 @@ public class Master {
 
     List<Job> runningJobs;
 
-
-
     private int mapReduceJobID = 0;
     private AtomicInteger internalJobID  = new AtomicInteger(0);
 
@@ -67,10 +65,8 @@ public class Master {
 
         initializeDFS(files);
 
-        System.out.println("fdf: " + filesToDistributedFiles);
-        System.out.println("fdf,get: " + filesToDistributedFiles.get("wordcount.txt"));
-        System.out.println("fdf,get,chunks: " + filesToDistributedFiles.get(new File("wordcount.txt")).getChunks());
-        jobQueue = new JobScheduler(filesToDistributedFiles.get(new File("wordcount.txt")).getChunks().get(0), chunkList, internalJobID);
+        jobQueue = new JobScheduler(filesToDistributedFiles.get(new File("wordcount.txt")).getChunks().get(0),
+                chunkList, internalJobID, messengers);
 
         new Thread(new HealthCheckerThread(messengers)).start();
         new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start();

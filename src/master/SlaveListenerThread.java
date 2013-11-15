@@ -72,7 +72,6 @@ public class SlaveListenerThread implements Runnable {
                                 Job nJob = new Job();
                                 nJob.chunk = job.jobResultChunk;
                                 nJob.reducerInterface = job.reducerInterface;
-                                System.out.println("adding job from map to clist: " + nJob);
                                 chunkList.add(nJob);
                                 break;
                             case REDUCE:
@@ -83,7 +82,6 @@ public class SlaveListenerThread implements Runnable {
                                         reduceOutFile, FileUtils.countLines(reduceOutFile)+1,messengers, DistributedFileSystemConstants.REPLICATION_FACTOR);
                                 filesToDistributedFiles.put(reduceOutFile, newDF);
 
-                                System.out.println("chunkList before reduce result add: " + chunkList);
 
                                 List<Chunk> chunks = filesToDistributedFiles.get(reduceOutFile).getChunks();
                                 completedMaps.add(job);
@@ -93,7 +91,6 @@ public class SlaveListenerThread implements Runnable {
                                     newJob.reducerInterface = job.reducerInterface;
                                     chunkList.add(newJob);
                                 }
-                                System.out.println("chunkList after reduce result add: " + chunkList);
                                 //MAKE NEW REDUCE JOB ON THIS REDUCED CHUNK  + OTHER CHUNKS
                                 break;
                             case DUMMY:
@@ -113,7 +110,7 @@ public class SlaveListenerThread implements Runnable {
                         }
                     }
                 } else if (message instanceof HeartBeatMessage) {
-                    System.out.println("Slave OK");
+                    //System.out.println("Slave heartbeat OK");
                 }
             } catch (SocketTimeoutException e) {
                 System.err.println("Slave died!");
@@ -137,8 +134,10 @@ public class SlaveListenerThread implements Runnable {
                 // if the socket has been closed because the slave is dead, the thread will eventually die due to
                 // a timeout on the heartbeat
                 System.err.println("Error receiving message from slave (possibly timeout): " + e);
+                return;
             } catch (ClassNotFoundException e) {
                 System.err.println("Illegal message received from slave: " + e);
+                return;
             }
         }
     }

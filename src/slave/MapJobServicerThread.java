@@ -38,7 +38,6 @@ public class MapJobServicerThread extends JobThread {
         chunk = mapJob.chunk;
         mapper = mapJob.mapperInterface;
         combiner = mapper.getCombiner();
-        System.out.println("combiner in map job svc thread: " + combiner);
     }
 
     public void run() {
@@ -60,12 +59,10 @@ public class MapJobServicerThread extends JobThread {
                 failJob();
             }
             BufferedReader br = new BufferedReader(new FileReader(mapInputFile));
-            System.out.println("input file contents: " + FileUtils.print(mapInputFile));
 
             //output of map is stored in chunk dir
             File mapOutputFile = new File(Chunk.getPathPrefixOnHost(hostName) + getOutputFileName());
             FileUtils.createFile(mapOutputFile);
-            System.out.println("created output file: " + mapOutputFile.getCanonicalPath());
             BufferedWriter outputWriter = new BufferedWriter(new FileWriter(mapOutputFile));
 
             String line;

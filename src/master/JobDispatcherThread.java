@@ -60,16 +60,10 @@ public class JobDispatcherThread implements Runnable {
 
             dispatchJob.state = JobState.DISPATCHED;
             dispatchJob.tries++;
-            System.out.println("dispatchJob.host: " + dispatchJob.host);
-            System.out.println("messengers in dispatcher: " + messengers);
-            System.out.println("messengers contains: " + messengers.containsKey(dispatchJob.host));
+            System.out.println("dispatching job: " + dispatchJob);
             SocketMessenger slaveToDispatchTo = messengers.get(dispatchJob.host);
-            System.out.println("slave messenger on job dispatcher: " + slaveToDispatchTo);
             try {
                 slaveToDispatchTo.sendMessage(new JobMessage(dispatchJob));
-                System.out.println("master sent job message: " + dispatchJob);
-                System.out.println("mapper: " + dispatchJob.mapperInterface);
-                //System.out.println("mapper - combiner: " + dispatchJob.mapperInterface.getCombiner());
                 runningJobs.add(dispatchJob);
             } catch (IOException e) {
                 continue;

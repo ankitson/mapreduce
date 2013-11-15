@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class HealthCheckerThread implements Runnable{
 
-    private int HEALTH_CHECK_FREQUENCY = 10000; //in ms
+    private int HEALTH_CHECK_FREQUENCY = 50; //in ms
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
     public HealthCheckerThread(ConcurrentHashMap<Host, SocketMessenger> messengers) {
         this.messengers = messengers;
@@ -27,12 +27,14 @@ public class HealthCheckerThread implements Runnable{
             try {
                 Thread.sleep(HEALTH_CHECK_FREQUENCY);
                 for (SocketMessenger messenger : messengers.values()) {
-                    messenger.sendMessage(new HeartBeatMessage());
+                    try {
+                        messenger.sendMessage(new HeartBeatMessage());
+                    } catch (IOException e) {
+                        messengers.remove(messenger);
+                    }
                 }
             } catch (InterruptedException e) {
                 System.err.println("Health checker thread interrupted");
-            } catch (IOException e) {
-                System.err.println("Unable to send heartbeat message");
             }
         }
     }
