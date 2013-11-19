@@ -161,6 +161,7 @@ public class Master {
         files.add(new File("./reducewc1.txt"));
         files.add(new File("./reducewc2.txt"));
         files.add(new File("wordcount.txt"));
+        files.add(new File("primes.txt"));
         slaves.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
         slaves.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
         slaves.add(new Host("UNIX4.ANDREW.CMU.EDU", 6666));
