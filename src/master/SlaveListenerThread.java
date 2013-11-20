@@ -8,10 +8,12 @@ package master;
  * To change this template use File | Settings | File Templates.
  */
 
+import Config.Configuration;
 import dfs.DistributedFile;
 import dfs.DistributedFileSystemConstants;
 import jobs.Job;
 import jobs.JobState;
+import jobs.MapReduceJob;
 import messages.*;
 import util.FileUtils;
 import util.Host;
@@ -38,21 +40,24 @@ public class SlaveListenerThread implements Runnable {
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
     private Map<File, DistributedFile> filesToDistributedFiles;
     private List<Job> chunkList;
+    private Configuration config;
 
     private ConcurrentMap<Integer, Pair<Integer, Stack<Job>>> mrJobSuccesses;
 
-    private final int MAX_JOB_TRIES = 3; //read from config
+    private int MAX_JOB_TRIES; //read from config
 
     public SlaveListenerThread(SocketMessenger slaveMessenger, JobScheduler jobScheduler,
                                ConcurrentHashMap <Host, SocketMessenger> messengers,
                                Map<File, DistributedFile> filesToDistributedFiles, List<Job> chunkList,
-                               ConcurrentMap<Integer, Pair<Integer, Stack<Job>>> mrJobSuccesses) {
+                               ConcurrentMap<Integer, Pair<Integer, Stack<Job>>> mrJobSuccesses, Configuration config) {
         this.slaveMessenger = slaveMessenger;
         this.jobScheduler = jobScheduler;
         this.messengers = messengers;
         this.filesToDistributedFiles = filesToDistributedFiles;
         this.chunkList = chunkList;
         this.mrJobSuccesses = mrJobSuccesses;
+        this.config = config;
+        this.MAX_JOB_TRIES = config.TRIES;
     }
 
     public void run() {
@@ -116,7 +121,25 @@ public class SlaveListenerThread implements Runnable {
                     }
                 } else if (message instanceof HeartBeatMessage) {
                     //System.out.println("Slave heartbeat OK");
-                } else if (message instanceof FileInfoMessage) {
+                } else if (message instanceof MapReduceMessage) {
+                    try {
+                        MapReduceMessage mrm = (MapReduceMessage)message;
+                        MapReduceJob mrj = (MapReduceJob) Class.forName(mrm.className).newInstance();
+                        System.out.println("launchin mapreduce from master given by slave");
+                        // DO THE ACTUAL INSTANTIATION OF JOB AND TAKE CARE OF JOB ID'S ETC
+
+                    } catch (ClassNotFoundException e) {
+                        System.out.println("Unable to find mapreduce job class: " + e);
+                    } catch (InstantiationException e) {
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (ClassCastException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                else if (message instanceof FileInfoMessage) {
                     System.out.println("master received FileInfoMessage");
                     FileInfoMessage fim = (FileInfoMessage) message;
                     File reduceOutFile = new File(fim.getFileName());

@@ -22,8 +22,8 @@ public class Configuration {
     public int CHUNK_SIZE;
     public int HEALTH_CHECK_FREQUENCY;
     public int TRIES;
-    public String CACHE_FILE_DEFAULT_DIRECTORY;
-    public int CACHE_SIZE;
+    public  List<String> MAPREDUCE_FILEPATHS;
+    public  int SLAVE_TIMEOUT;
 
     public Configuration(String filepath) throws IOException {
         this.setParameters(filepath);
@@ -55,10 +55,15 @@ public class Configuration {
                 this.HEALTH_CHECK_FREQUENCY = Integer.parseInt(split[1]);
             else if (split[0].equals("TRIES"))
                 this.TRIES = Integer.parseInt(split[1]);
-            else if (split[0].equals("CACHE_SIZE"))
-                this.CACHE_SIZE = Integer.parseInt(split[1]);
-            else if (split[0].equals("CACHE_FILE_DEFAULT_DIRECTORY"))
-                this.CACHE_FILE_DEFAULT_DIRECTORY = split[1];
+            else if (split[0].equals("SLAVE_TIMEOUT"))
+                this.SLAVE_TIMEOUT = Integer.parseInt(split[1]);
+            else if (split[0].equals("MAPREDUCE_FILEPATHS")) {
+                this.MAPREDUCE_FILEPATHS = new ArrayList<String>();
+                String[] filepaths =   split[1].split(",");
+                for (int i = 0; i < filepaths.length; i++) {
+                    this.MAPREDUCE_FILEPATHS.add(filepaths[i]);
+                }
+            }
             else if (split[0].equals("SLAVE_HOSTNAMES")) {
                 this.SLAVE_HOSTNAMES = new ArrayList<String>();
                 String[] slaves =   split[1].split(",");
@@ -81,8 +86,8 @@ public class Configuration {
                 "\nTRIES = " + this.TRIES +
                 "\nSLAVE_HOSTNAMES = " + this.SLAVE_HOSTNAMES +
                 "\nMASTER_HOSTNAME = " + this.MASTER_HOSTNAME +
-                "\nCACHE_SIZE = " + this.CACHE_SIZE +
-                "\nCACHE_FILE_DEFAULT_DIRECTORY = " + this.CACHE_FILE_DEFAULT_DIRECTORY;
+                "\nMAPREDUCE_FILEPATHS = " + this.MAPREDUCE_FILEPATHS +
+                "\nSLAVE_TIMEOUT = " + this.SLAVE_TIMEOUT;
     }
 
 }

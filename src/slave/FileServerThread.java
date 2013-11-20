@@ -17,7 +17,7 @@ import java.net.Socket;
  */
 public class FileServerThread implements Runnable {
 
-    public static final int FS_LISTEN_PORT = 5358;
+    public static final int FS_LISTEN_PORT = 9793;
     private ServerSocket serverSocket;
 
     public FileServerThread() {
@@ -26,7 +26,7 @@ public class FileServerThread implements Runnable {
 
     public void run() {
         try {
-            serverSocket = new ServerSocket(5358);
+            serverSocket = new ServerSocket(9793);
         } catch (IOException e) {
             System.err.println("Slave FS server unable to listen on port " + FS_LISTEN_PORT + ": " + e);
         }

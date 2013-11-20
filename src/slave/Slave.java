@@ -21,7 +21,7 @@ import java.net.UnknownHostException;
  */
 public class Slave {
 
-    private int LISTEN_PORT = 6666; //read from config file
+    private int LISTEN_PORT = 8888; //read from config file
     private String MASTER_HOSTNAME = "UNIX1.ANDREW.CMU.EDU";
     private Host masterHost;
     private Socket masterSocket;

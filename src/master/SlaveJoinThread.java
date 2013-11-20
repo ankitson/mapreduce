@@ -1,5 +1,6 @@
 package master;
 
+import Config.Configuration;
 import messages.SocketMessenger;
 import util.Host;
 
@@ -17,14 +18,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SlaveJoinThread implements Runnable {
 
-    private int SLAVE_TIMEOUT = 1000; //config //heartbeat recv timeout
+    private Configuration config;
+
+    private int SLAVE_TIMEOUT; //config //heartbeat recv timeout
     //should be a multiple of heartbeat SEND frequency (or at least greater)
 
-    private int LISTEN_PORT = 6666; //config
+    private int LISTEN_PORT; //config
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
 
-    public SlaveJoinThread(ConcurrentHashMap<Host, SocketMessenger> messengers) {
+    public SlaveJoinThread(ConcurrentHashMap<Host, SocketMessenger> messengers, Configuration config) {
         this.messengers = messengers;
+        this.config = config;
+        this.SLAVE_TIMEOUT = config.SLAVE_TIMEOUT;
+        this.LISTEN_PORT = config.MASTER_SLAVE_PORT;
     }
 
     public void run() {

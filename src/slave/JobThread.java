@@ -28,7 +28,7 @@ public abstract class JobThread implements Runnable {
         for (Host host : chunk.getHosts()) {
             try {
                 System.out.println("requesting " + host + " for chunk");
-                Socket socket = new Socket(host.HOSTNAME, 5358);
+                Socket socket = new Socket(host.HOSTNAME, 9793);
                 SocketMessenger hostMessenger = new SocketMessenger(socket);
                 hostMessenger.sendMessage(new ChunkMessage(chunk, host.HOSTNAME));
                 Message message = hostMessenger.receiveMessage();

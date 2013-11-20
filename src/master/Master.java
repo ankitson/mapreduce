@@ -1,5 +1,6 @@
 package master;
 
+import Config.Configuration;
 import dfs.Chunk;
 import dfs.DistributedFile;
 import dfs.DistributedFileSystemConstants;
@@ -27,7 +28,7 @@ public class Master {
 
     //number of slaves
     //master will wait until all slaves connect
-    int NUMBER_OF_SLAVES = 2;
+    public int NUMBER_OF_SLAVES;
 
     public Set<Host> slaves; //parse from config file //MAKE PRIVATE LATER
     public Set<File> files; //parse from config file //MAKE PRIVATE LATER
@@ -44,10 +45,28 @@ public class Master {
 
     private int mapReduceJobID = 0;
     private AtomicInteger internalJobID  = new AtomicInteger(0);
+    public Configuration config;
 
 
     //yolo constructor for testing fix later
-    public Master(Set<File> files, Set<Host> slaves) throws IOException {
+    public Master(Set<File> files, Set<Host> slaves, Configuration config) throws IOException {
+        this.config = config;
+        this.NUMBER_OF_SLAVES = config.NUMBER_OF_SLAVES;
+
+        List<Host> slaveNames = new ArrayList<Host>();
+        for (int i = 0; i < config.SLAVE_HOSTNAMES.size(); i++) {
+            Host host = new Host(config.SLAVE_HOSTNAMES.get(i),config.MASTER_SLAVE_PORT);
+            slaveNames.add(host);
+        }
+        this.slaves = new HashSet<Host>(slaveNames);
+
+        List<File> fileNames = new ArrayList<File>();
+        for (int i = 0; i < config.MAPREDUCE_FILEPATHS.size(); i++) {
+            File file = new File(config.MAPREDUCE_FILEPATHS.get(i));
+            fileNames.add(file);
+        }
+        this.files = new HashSet<File>(fileNames);
+
         this.files = files;
         this.slaves = slaves;
         runningJobs = Collections.synchronizedList(new ArrayList<Job>());
@@ -56,7 +75,7 @@ public class Master {
         mrJobSuccesses = new ConcurrentHashMap<Integer, Pair<Integer, Stack<Job>>>();
         filesToDistributedFiles = new ConcurrentHashMap<File, DistributedFile>();
 
-        new Thread(new SlaveJoinThread(messengers)).start();
+        new Thread(new SlaveJoinThread(messengers, config)).start();
         System.out.println("Waiting for all slaves to connect.");
 
         //if some slave never starts, it will infinite loop
@@ -69,11 +88,11 @@ public class Master {
         jobQueue = new JobScheduler(filesToDistributedFiles.get(new File("wordcount.txt")).getChunks().get(0),
                 chunkList, internalJobID, messengers);
 
-        new Thread(new HealthCheckerThread(messengers)).start();
+        new Thread(new HealthCheckerThread(messengers, config)).start();
         new Thread(new JobDispatcherThread(jobQueue, messengers, runningJobs)).start();
         for (SocketMessenger slaveMessenger : messengers.values()) {
             new Thread(new SlaveListenerThread(slaveMessenger, jobQueue, messengers,
-                    filesToDistributedFiles, chunkList, mrJobSuccesses)).start();
+                    filesToDistributedFiles, chunkList, mrJobSuccesses, config)).start();
         }
     }
 
@@ -147,7 +166,17 @@ public class Master {
     }
 
     public static void main(String[] args) throws IOException {
-        Set<File> files = new HashSet<File>();
+
+        String configFilePath = args[1];
+        System.out.println(configFilePath);
+
+        Configuration config = new Configuration(configFilePath);
+        System.out.println("launching config" + config);
+
+
+        // do this possibly in master constructor now
+
+        /*Set<File> files = new HashSet<File>();
         Set<Host> slaves = new HashSet<Host>();
         //files.add(new File("./testfile1.txt"));
         //files.add(new File("./testfile2.txt"));
@@ -160,11 +189,11 @@ public class Master {
         //files.add(new File("./reducewc2.txt"));
         files.add(new File("wordcount.txt"));
         files.add(new File("primes.txt"));
-        slaves.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
+        slaves.add(new Host("UNIX2.ANDREW.CMU.EDU", 8888));
         //slaves.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
-        slaves.add(new Host("UNIX4.ANDREW.CMU.EDU", 6666));
+        slaves.add(new Host("UNIX4.ANDREW.CMU.EDU", 8888));
         Master master = new Master(files, slaves);
-        master.listenInput();
+        master.listenInput();  */
     }
 
 }
