@@ -25,15 +25,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Master {
 
-
-
     //number of slaves
     //master will wait until all slaves connect
     int NUMBER_OF_SLAVES = 2;
 
     public Set<Host> slaves; //parse from config file //MAKE PRIVATE LATER
     public Set<File> files; //parse from config file //MAKE PRIVATE LATER
-    private Map<File, DistributedFile> filesToDistributedFiles = new HashMap<File, DistributedFile>();
+    private ConcurrentMap<File, DistributedFile> filesToDistributedFiles;
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
     private List<Job> chunkList;
 
@@ -56,6 +54,7 @@ public class Master {
         messengers = new ConcurrentHashMap<Host,SocketMessenger>();
         chunkList = Collections.synchronizedList(new ArrayList<Job>());
         mrJobSuccesses = new ConcurrentHashMap<Integer, Pair<Integer, Stack<Job>>>();
+        filesToDistributedFiles = new ConcurrentHashMap<File, DistributedFile>();
 
         new Thread(new SlaveJoinThread(messengers)).start();
         System.out.println("Waiting for all slaves to connect.");

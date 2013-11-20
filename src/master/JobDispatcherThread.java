@@ -53,10 +53,10 @@ public class JobDispatcherThread implements Runnable {
 
             Job dispatchJob = jobQueue.dequeueNextJob();
 
-
-            //testing junk
             if (dispatchJob == null)
                 continue;
+
+            System.out.println("going to dispatch this job: " + dispatchJob);
 
             dispatchJob.state = JobState.DISPATCHED;
             dispatchJob.tries++;

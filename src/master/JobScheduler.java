@@ -75,8 +75,9 @@ public class JobScheduler {
             job.host = host;
             job.state = JobState.QUEUED;
             jobQueue.add(job);
-
         }
+
+        System.out.println("job queue after addJobs: " + jobQueue);
         /*List<Host> hosts = new ArrayList<Host>();
         hosts.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
         hosts.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
@@ -107,7 +108,13 @@ public class JobScheduler {
             return reduceJob;
         }*/
 
-        return jobQueue.poll();
+        Job next = jobQueue.poll();
+        if (next != null) {
+            System.out.println("dequeue next job called");
+
+            System.out.println("returning: " + next);
+        }
+        return next;
     }
 
     //change addJob to addJobs(list), ready after whole batch added
@@ -130,15 +137,21 @@ public class JobScheduler {
     }
 
     public void jobDone(Job job) {
+        ready = false;
         int mrJobID = job.mrJobID;
+        System.out.println("job done in scheduler: " + job);
 
 
         if (job.jobType == JobType.REDUCE) {
+            System.out.println("reduce job done");
             List<Job> completedReduces = completedReduceJobs.get(mrJobID);
+            System.out.println("current compl. reduces: " + completedReduces);
             if (completedReduces == null) {
                 completedReduces = new ArrayList<Job>();
             }
             completedReduces.add(job);
+            completedReduceJobs.put(mrJobID, completedReduces);
+            System.out.println("completed reduces after new add: " + completedReduces);
 
             List<Job> newReduceJobs = new ArrayList<Job>();
             while (completedReduces.size() >= 2) {
@@ -150,7 +163,10 @@ public class JobScheduler {
                 Job newReduce = new Job(mrJobID, internalJobID.incrementAndGet(),null, reducer, chunk1, chunk2, null);
                 newReduceJobs.add(newReduce);
             }
-            addJobs(newReduceJobs);
+            if (newReduceJobs.size() > 0) {
+                System.out.println("adding new reduce jobs to queue: " + newReduceJobs);
+                addJobs(newReduceJobs);
+            }
             //spawn new reduce jobs out of existing reduce jobs
         }
 
@@ -166,7 +182,6 @@ public class JobScheduler {
                 }
             }
 
-            System.out.println("Job done in scheduler: " + job);
             System.out.println("map jobs: " + mrJobMapJobs);
             //check if map phase of MR job is done
             boolean mapCompleted = true;
@@ -181,6 +196,7 @@ public class JobScheduler {
                 initializeReduceJobs(mrJobID);
             }
         }
+        ready = true;
     }
 
     public void initializeMapJobs(int mrJobID, List<Job> mapJobs) {
@@ -201,6 +217,14 @@ public class JobScheduler {
         System.out.println("Reduce jobs initialized to: " + reduceJobs);
         mrJobToReduceJobs.put(mrJobID, reduceJobs);
         addJobs(reduceJobs);
+
+        /*if (mapJobs.size() % 2 == 1) {
+            List<Job> completedReduces = completedReduceJobs.get(mrJobID);
+            completedReduces.add(mapJobs.get(mapJobs.size() - 1));
+        }*/
+
+
+
         System.out.println("after add, queue: " + jobQueue);
     }
 

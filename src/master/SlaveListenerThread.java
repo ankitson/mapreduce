@@ -21,7 +21,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -77,6 +80,7 @@ public class SlaveListenerThread implements Runnable {
                                 break;
                             case REDUCE:
                                 System.out.println("master received reduce job message");
+
                                 /*FileInfoMessage fim = ((FileInfoMessage) slaveMessenger.receiveMessage());
                                 File reduceOutFile = new File(fim.getFileName());
                                 slaveMessenger.receiveFile(reduceOutFile,(int) fim.getFileSize());
@@ -122,7 +126,18 @@ public class SlaveListenerThread implements Runnable {
                     DistributedFile reduceDF = new
                             DistributedFile(reduceOutFile, FileUtils.countLines(reduceOutFile)+1,messengers,
                                 DistributedFileSystemConstants.REPLICATION_FACTOR);
-
+                } else if (message instanceof ReduceJobDoneMessage) {
+                    ReduceJobDoneMessage rjdm = ((ReduceJobDoneMessage) message);
+                    FileInfoMessage fim = (FileInfoMessage) rjdm.getFim();
+                    Job completedJob = rjdm.getJob();
+                    File reduceOutFile = new File(fim.getFileName());
+                    slaveMessenger.receiveFile(reduceOutFile, (int) fim.getFileSize());
+                    DistributedFile reduceDF = new
+                            DistributedFile(reduceOutFile, FileUtils.countLines(reduceOutFile)+1,messengers,
+                            DistributedFileSystemConstants.REPLICATION_FACTOR);
+                    completedJob.jobResultChunk = reduceDF.getChunks().get(0);
+                    filesToDistributedFiles.put(reduceOutFile, reduceDF);
+                    jobScheduler.jobDone(completedJob);
                 }
             } catch (SocketTimeoutException e) {
                 System.err.println("Slave died!");

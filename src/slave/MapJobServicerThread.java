@@ -154,11 +154,13 @@ public class MapJobServicerThread extends JobThread {
     }
 
     public void successJob(String outFileName) throws IOException {
+        System.out.println("Map completed succesfully: " + outFileName);
         mapJob.state = JobState.SUCCESS;
         Set<Host> selfHost = new HashSet<Host>();
         selfHost.add(new Host(hostName, FileServerThread.FS_LISTEN_PORT));
         mapJob.jobResultChunk = new Chunk(outFileName, -1, selfHost, null);
         masterMessenger.sendMessage(new JobMessage(mapJob, outFileName));
+        System.out.println("sent map complete message");
         return;
     }
 

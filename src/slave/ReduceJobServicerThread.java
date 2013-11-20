@@ -7,6 +7,7 @@ import jobs.KVContainer;
 import jobs.ReducerInterface;
 import messages.FileInfoMessage;
 import messages.JobMessage;
+import messages.ReduceJobDoneMessage;
 import messages.SocketMessenger;
 import util.FileUtils;
 
@@ -139,13 +140,19 @@ public class ReduceJobServicerThread extends JobThread {
     }
 
     public void successJob(File file) throws IOException {
-        System.out.println("Reduce job completed: " + reduceJob);
+
         reduceJob.state = JobState.SUCCESS;
-        masterMessenger.sendMessage(new JobMessage(reduceJob));
+        ReduceJobDoneMessage rjdm = new ReduceJobDoneMessage(reduceJob, new FileInfoMessage(file.getName(), file.length()));
+        masterMessenger.sendMessage(rjdm);
+        masterMessenger.sendFile(file);
+
+        /*System.out.println("Reduce job completed: " + reduceJob);
+        reduceJob.state = JobState.SUCCESS;
+        masterMessenger.sendMessage(new JobMessage(reduceJob, file.getName()));
         System.out.println("sent reduce job message");
         masterMessenger.sendMessage(new FileInfoMessage(file.getName(),file.length()));
         System.out.println("sent file info message");
-        masterMessenger.sendFile(file);
+        masterMessenger.sendFile(file);*/
     }
 
     public String getOutputFileName() {
