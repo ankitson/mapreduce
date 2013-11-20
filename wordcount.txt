@@ -1,0 +1,15 @@
+apple
+banana
+apple
+banana
+apple
+banana
+cat
+dog
+cat
+dog
+elephant
+lol
+cool
+what
+blargh
