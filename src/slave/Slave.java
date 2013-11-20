@@ -53,6 +53,9 @@ public class Slave {
             System.err.println("Error when slave trying to connect to master: " + e);
         }
 
+        // launch thread to be able to take user input for mapreduce task
+        new Thread(new TaskInstantiaterThread(masterMessenger)).start();
+
         while (true) {
             try {
                 Message message = masterMessenger.receiveMessage();

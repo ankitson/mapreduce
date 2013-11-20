@@ -25,8 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Master {
 
-    //private final Configuration MAPREDUCE_CONFIG = new Configuration(new File('./config/mapreduce_config.txt'));
-    //private final Configuration DFS_CONFIG = new Configuration(new File('./config/dfs_config.txt'));
+
 
     //number of slaves
     //master will wait until all slaves connect
