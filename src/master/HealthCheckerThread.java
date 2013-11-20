@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class HealthCheckerThread implements Runnable{
 
-    private int HEALTH_CHECK_FREQUENCY = 50; //in ms
+    private int HEALTH_CHECK_FREQUENCY = 100; //in ms
     private ConcurrentHashMap<Host, SocketMessenger> messengers;
     public HealthCheckerThread(ConcurrentHashMap<Host, SocketMessenger> messengers) {
         this.messengers = messengers;

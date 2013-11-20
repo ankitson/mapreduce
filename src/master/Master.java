@@ -30,7 +30,7 @@ public class Master {
 
     //number of slaves
     //master will wait until all slaves connect
-    int NUMBER_OF_SLAVES = 3;
+    int NUMBER_OF_SLAVES = 2;
 
     public Set<Host> slaves; //parse from config file //MAKE PRIVATE LATER
     public Set<File> files; //parse from config file //MAKE PRIVATE LATER
@@ -57,8 +57,6 @@ public class Master {
         messengers = new ConcurrentHashMap<Host,SocketMessenger>();
         chunkList = Collections.synchronizedList(new ArrayList<Job>());
         mrJobSuccesses = new ConcurrentHashMap<Integer, Pair<Integer, Stack<Job>>>();
-
-
 
         new Thread(new SlaveJoinThread(messengers)).start();
         System.out.println("Waiting for all slaves to connect.");
@@ -114,9 +112,8 @@ public class Master {
                 String className = args[1];
                 try {
                     MapReduceJob mrj = (MapReduceJob) Class.forName(className).newInstance();
-                    boolean status = generateJobs(mrj);
-                    if (status == true)
-                        mapReduceJobID++;
+                    generateJobs(mrj);
+                    mapReduceJobID++;
 
                 } catch (ClassNotFoundException e) {
                     System.out.println("Unable to find mapreduce job class: " + e);
@@ -132,7 +129,7 @@ public class Master {
         }
     }
 
-    public boolean generateJobs(MapReduceJob mrj) {
+    public void generateJobs(MapReduceJob mrj) {
         File inputFile = new File(mrj.getInputFileName());
         List<Chunk> jobChunks = filesToDistributedFiles.get(new File(mrj.getInputFileName())).getChunks();
         List<Job> mapJobs = new ArrayList<Job>();
@@ -144,26 +141,29 @@ public class Master {
         }
         int numTotalJobs = mapJobs.size() * 2 - 1;
         mrJobSuccesses.put(mapReduceJobID, new Pair(numTotalJobs,new Stack<Job>()));
-        boolean status = jobQueue.addJobs(mapJobs);
-        return status;
+
+        jobQueue.initializeMapJobs(mapReduceJobID, mapJobs);
+
+        //boolean status = jobQueue.addJobs(mapJobs);
+        //return status;
     }
 
     public static void main(String[] args) throws IOException {
         Set<File> files = new HashSet<File>();
         Set<Host> slaves = new HashSet<Host>();
-        files.add(new File("./testfile1.txt"));
-        files.add(new File("./testfile2.txt"));
-        files.add(new File("./testfile3.txt"));
-        files.add(new File("./testfile4.txt"));
-        files.add(new File("./testfile5.txt"));
-        files.add(new File("./wordcounttest.txt"));
-        files.add(new File("./floatyolotest.txt"));
-        files.add(new File("./reducewc1.txt"));
-        files.add(new File("./reducewc2.txt"));
+        //files.add(new File("./testfile1.txt"));
+        //files.add(new File("./testfile2.txt"));
+        //files.add(new File("./testfile3.txt"));
+        //files.add(new File("./testfile4.txt"));
+        //files.add(new File("./testfile5.txt"));
+        //files.add(new File("./wordcounttest.txt"));
+        //files.add(new File("./floatyolotest.txt"));
+        //files.add(new File("./reducewc1.txt"));
+        //files.add(new File("./reducewc2.txt"));
         files.add(new File("wordcount.txt"));
         files.add(new File("primes.txt"));
         slaves.add(new Host("UNIX2.ANDREW.CMU.EDU", 6666));
-        slaves.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
+        //slaves.add(new Host("UNIX3.ANDREW.CMU.EDU", 6666));
         slaves.add(new Host("UNIX4.ANDREW.CMU.EDU", 6666));
         Master master = new Master(files, slaves);
         master.listenInput();

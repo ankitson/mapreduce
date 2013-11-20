@@ -3,14 +3,13 @@ package master;
 import dfs.Chunk;
 import jobs.Job;
 import jobs.JobState;
+import jobs.JobType;
 import jobs.ReducerInterface;
 import messages.SocketMessenger;
 import util.Host;
 import util.KCyclicIterator;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,6 +34,10 @@ public class JobScheduler {
     private AtomicInteger internalJobID;
     private ConcurrentMap<Host, SocketMessenger> messengers;
 
+    private Map<Integer, List<Job>> mrJobToMapJobs;
+    private Map<Integer, List<Job>> mrJobToReduceJobs;
+    private Map<Integer, List<Job>> completedReduceJobs;
+
     //CHUNK ARG ONLY FOR TESTING
     public JobScheduler(Chunk chunk1, List<Job> chunkList, AtomicInteger internalJobID,
                         ConcurrentMap<Host,SocketMessenger> messengers) {
@@ -44,6 +47,9 @@ public class JobScheduler {
         this.chunkList = chunkList;
         this.internalJobID = internalJobID;
         this.messengers = messengers;
+        this.mrJobToMapJobs = new HashMap<Integer, List<Job>>();
+        this.mrJobToReduceJobs = new HashMap<Integer, List<Job>>();
+        this.completedReduceJobs = new HashMap<Integer, List<Job>>();
 
         ready = true;
     }
@@ -89,7 +95,7 @@ public class JobScheduler {
     }
 
     public Job dequeueNextJob() {
-        if (chunkList.size() >= 2) {
+        /*if (chunkList.size() >= 2) {
             Job reduceJob;
             Job job1 = chunkList.remove(0);
             Job job2 = chunkList.remove(0);
@@ -99,7 +105,7 @@ public class JobScheduler {
             Host host = chunk1.getHosts().iterator().next();
             reduceJob = new Job(job1.mrJobID, internalJobID.incrementAndGet(), host, reducer, chunk1, chunk2, JobState.QUEUED);
             return reduceJob;
-        }
+        }*/
 
         return jobQueue.poll();
     }
@@ -121,6 +127,81 @@ public class JobScheduler {
         public int compare(Job j1, Job j2) {
             return 1;
         }
+    }
+
+    public void jobDone(Job job) {
+        int mrJobID = job.mrJobID;
+
+
+        if (job.jobType == JobType.REDUCE) {
+            List<Job> completedReduces = completedReduceJobs.get(mrJobID);
+            if (completedReduces == null) {
+                completedReduces = new ArrayList<Job>();
+            }
+            completedReduces.add(job);
+
+            List<Job> newReduceJobs = new ArrayList<Job>();
+            while (completedReduces.size() >= 2) {
+                Job reduce1 = completedReduces.remove(0);
+                Job reduce2 = completedReduces.remove(0);
+                ReducerInterface reducer = reduce1.reducerInterface;
+                Chunk chunk1 = reduce1.jobResultChunk;
+                Chunk chunk2 = reduce2.jobResultChunk;
+                Job newReduce = new Job(mrJobID, internalJobID.incrementAndGet(),null, reducer, chunk1, chunk2, null);
+                newReduceJobs.add(newReduce);
+            }
+            addJobs(newReduceJobs);
+            //spawn new reduce jobs out of existing reduce jobs
+        }
+
+
+        else if (job.jobType == JobType.MAP) {
+            List<Job> mrJobMapJobs = mrJobToMapJobs.get(mrJobID);
+
+            //update job status
+            for (int i=0; i<mrJobMapJobs.size();i++) {
+                Job job2 = mrJobMapJobs.get(i);
+                if (job2.equals(job)) {
+                    mrJobMapJobs.set(i, job);
+                }
+            }
+
+            System.out.println("Job done in scheduler: " + job);
+            System.out.println("map jobs: " + mrJobMapJobs);
+            //check if map phase of MR job is done
+            boolean mapCompleted = true;
+            for (int i=0;i<mrJobMapJobs.size();i++) {
+                Job jobI = mrJobMapJobs.get(i);
+                if (jobI.state != JobState.SUCCESS)
+                    mapCompleted = false;
+            }
+
+            //create reduce jobs
+            if (mapCompleted) {
+                initializeReduceJobs(mrJobID);
+            }
+        }
+    }
+
+    public void initializeMapJobs(int mrJobID, List<Job> mapJobs) {
+        mrJobToMapJobs.put(mrJobID, mapJobs);
+        addJobs(mapJobs);
+    }
+
+    public void initializeReduceJobs(int mrJobID) {
+        List<Job> reduceJobs = new ArrayList<Job>();
+        List<Job> mapJobs = mrJobToMapJobs.get(mrJobID);
+        for (int i=0;i<mapJobs.size()/2;i++) {
+            Chunk chunk1 = mapJobs.get(2*i).jobResultChunk;
+            Chunk chunk2 = mapJobs.get(2*i+1).jobResultChunk;
+            ReducerInterface reducer = mapJobs.get(i).reducerInterface;
+            Job reduceJob = new Job(mrJobID, internalJobID.incrementAndGet(), null, reducer, chunk1, chunk2, null);
+            reduceJobs.add(reduceJob);
+        }
+        System.out.println("Reduce jobs initialized to: " + reduceJobs);
+        mrJobToReduceJobs.put(mrJobID, reduceJobs);
+        addJobs(reduceJobs);
+        System.out.println("after add, queue: " + jobQueue);
     }
 
 }

@@ -41,6 +41,13 @@ public class ReduceJobServicerThread extends JobThread {
     }
 
     public void run() {
+        //TESTING
+        try {
+            Thread.sleep(5000);
+        } catch (Exception e) {
+
+        }
+
         System.out.println("Reduce thread running");
         File chunk1File = getFileFromChunk(chunk1, hostName);
         File chunk2File = getFileFromChunk(chunk2, hostName);
@@ -61,8 +68,13 @@ public class ReduceJobServicerThread extends JobThread {
 
             SortedMap<KVContainer,KVContainer> inKVstoOutKVs = new TreeMap<KVContainer,KVContainer>();
 
-            performReduce(chunk1Reader, inKVstoOutKVs);
-            performReduce(chunk2Reader, inKVstoOutKVs);
+            try {
+                performReduce(chunk1Reader, inKVstoOutKVs);
+                performReduce(chunk2Reader, inKVstoOutKVs);
+            } catch (Exception e) {
+                System.err.println("Job failed because of exception in user code");
+                failJob();
+            }
 
             for (KVContainer outKV : inKVstoOutKVs.values()) {
                 reduceOutWriter.write(reducer.KVtoString(outKV)+"\n");
@@ -127,10 +139,12 @@ public class ReduceJobServicerThread extends JobThread {
     }
 
     public void successJob(File file) throws IOException {
-
+        System.out.println("Reduce job completed: " + reduceJob);
         reduceJob.state = JobState.SUCCESS;
         masterMessenger.sendMessage(new JobMessage(reduceJob));
+        System.out.println("sent reduce job message");
         masterMessenger.sendMessage(new FileInfoMessage(file.getName(),file.length()));
+        System.out.println("sent file info message");
         masterMessenger.sendFile(file);
     }
 

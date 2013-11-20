@@ -52,7 +52,9 @@ public class SocketMessenger {
         if (objectInputStream == null) {
             objectInputStream = new ObjectInputStream(socket.getInputStream());
         }
-        return (Message) objectInputStream.readObject();
+        Message recvd = (Message) objectInputStream.readObject();
+        return recvd;
+
     }
 
     public boolean receiveFile(File f, int length) throws IOException {

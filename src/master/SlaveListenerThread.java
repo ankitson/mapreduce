@@ -8,7 +8,6 @@ package master;
  * To change this template use File | Settings | File Templates.
  */
 
-import dfs.Chunk;
 import dfs.DistributedFile;
 import dfs.DistributedFileSystemConstants;
 import jobs.Job;
@@ -62,36 +61,38 @@ public class SlaveListenerThread implements Runnable {
                     JobMessage jm = ((JobMessage) message);
                     Job job = jm.job;
                     if (job.state == JobState.SUCCESS) {
-
-                        System.out.println(job + " completed successfully");
+                        jobScheduler.jobDone(job);
                         switch (job.jobType) {
                             case MAP:
                                 successJob(job, null);
-                                String mapOutFileName = jm.fileName;
+
+                                /*String mapOutFileName = jm.fileName;
                                 HashSet<Host> hosts = new HashSet<Host>();
                                 hosts.add(job.host);
                                 Job nJob = new Job();
                                 nJob.chunk = job.jobResultChunk;
                                 nJob.reducerInterface = job.reducerInterface;
-                                chunkList.add(nJob);
+                                chunkList.add(nJob);*/
+
                                 break;
                             case REDUCE:
-                                FileInfoMessage fim = ((FileInfoMessage) slaveMessenger.receiveMessage());
+                                System.out.println("master received reduce job message");
+                                /*FileInfoMessage fim = ((FileInfoMessage) slaveMessenger.receiveMessage());
                                 File reduceOutFile = new File(fim.getFileName());
                                 slaveMessenger.receiveFile(reduceOutFile,(int) fim.getFileSize());
                                 DistributedFile newDF = new DistributedFile(
                                         reduceOutFile, FileUtils.countLines(reduceOutFile)+1,messengers, DistributedFileSystemConstants.REPLICATION_FACTOR);
                                 filesToDistributedFiles.put(reduceOutFile, newDF);
-                                successJob(job, newDF);
+                                successJob(job, newDF);*/
 
 
-                                List<Chunk> chunks = filesToDistributedFiles.get(reduceOutFile).getChunks();
+                                /*List<Chunk> chunks = filesToDistributedFiles.get(reduceOutFile).getChunks();
                                 for (Chunk chunk : chunks) {
                                     Job newJob = new Job();
                                     newJob.chunk = chunk;
                                     newJob.reducerInterface = job.reducerInterface;
                                     chunkList.add(newJob);
-                                }
+                                }*/
                                 break;
                             case DUMMY:
                                 break;
@@ -111,6 +112,17 @@ public class SlaveListenerThread implements Runnable {
                     }
                 } else if (message instanceof HeartBeatMessage) {
                     //System.out.println("Slave heartbeat OK");
+                } else if (message instanceof FileInfoMessage) {
+                    System.out.println("master received FileInfoMessage");
+                    FileInfoMessage fim = (FileInfoMessage) message;
+                    File reduceOutFile = new File(fim.getFileName());
+                    System.out.println("receivd fim: " + fim.getFileName());
+                    slaveMessenger.receiveFile(reduceOutFile, (int) fim.getFileSize());
+                    System.out.println("received file: " + reduceOutFile);
+                    DistributedFile reduceDF = new
+                            DistributedFile(reduceOutFile, FileUtils.countLines(reduceOutFile)+1,messengers,
+                                DistributedFileSystemConstants.REPLICATION_FACTOR);
+
                 }
             } catch (SocketTimeoutException e) {
                 System.err.println("Slave died!");
@@ -180,6 +192,8 @@ public class SlaveListenerThread implements Runnable {
     }*/
 
     private void successJob(Job job, DistributedFile df) {
+        System.out.println(job + " completed successfully");
+
         int mrJobID = job.mrJobID;
         Pair<Integer, Stack<Job>> current = mrJobSuccesses.get(mrJobID);
         if (current.getSecond().size() == current.getFirst() - 1) {

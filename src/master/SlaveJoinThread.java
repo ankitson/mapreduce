@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SlaveJoinThread implements Runnable {
 
-    private int SLAVE_TIMEOUT = 300; //config //heartbeat recv timeout
+    private int SLAVE_TIMEOUT = 1000; //config //heartbeat recv timeout
     //should be a multiple of heartbeat SEND frequency (or at least greater)
 
     private int LISTEN_PORT = 6666; //config
@@ -36,7 +36,8 @@ public class SlaveJoinThread implements Runnable {
                 slaveSocket = listen.accept();
                 System.out.println("Slave connected: " + slaveSocket.getInetAddress().getHostName().toUpperCase());
                 Host slaveHost = new Host(slaveSocket);
-                SocketMessenger slaveMessenger = new SocketMessenger(slaveSocket, SLAVE_TIMEOUT);
+
+                SocketMessenger slaveMessenger = new SocketMessenger(slaveSocket,SLAVE_TIMEOUT);
                 messengers.put(slaveHost, slaveMessenger);
             }
         } catch (IOException e) {

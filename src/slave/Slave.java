@@ -85,6 +85,7 @@ public class Slave {
                     receivedFile.renameTo(new File(fullNewPath));
                 } else if (message instanceof HeartBeatMessage) {
                     //System.out.println("Slave received heartbeat");
+
                     masterMessenger.sendMessage(new HeartBeatMessage());
                 } else if (message instanceof HostNameMessage) {
                     hostName = ((HostNameMessage) message).getHostName();
